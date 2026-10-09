@@ -34,7 +34,7 @@ export function Layout() {
       </header>
       <nav className="app-nav no-print">
         <NavLink to="/" end>
-          Recepciones
+          Historial
         </NavLink>
         <NavLink to="/receptions/new">+ Nueva</NavLink>
         <NavLink to="/agreements">Acuerdos</NavLink>

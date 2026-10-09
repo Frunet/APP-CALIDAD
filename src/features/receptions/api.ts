@@ -46,14 +46,26 @@ export function emptyDraft(): ReceptionDraft {
 
 const s = (v: unknown) => (v === null || v === undefined ? '' : String(v))
 
-export async function listReceptions(search: string): Promise<ReceptionSummary[]> {
+export interface HistoryFilters {
+  search: string
+  status: '' | 'draft' | 'closed'
+  inspectorId: string
+  from: string // YYYY-MM-DD
+  to: string // YYYY-MM-DD
+}
+
+export async function listReceptions(f: HistoryFilters): Promise<ReceptionSummary[]> {
   let q = supabase
     .from('receptions')
     .select('id, received_at, product, supplier_name, lot, status, inspector_id, profiles(full_name)')
     .order('received_at', { ascending: false })
-    .limit(200)
-  const term = search.trim().replace(/[%,()]/g, ' ')
+    .limit(300)
+  const term = f.search.trim().replace(/[%,()]/g, ' ')
   if (term) q = q.or(`supplier_name.ilike.%${term}%,lot.ilike.%${term}%`)
+  if (f.status) q = q.eq('status', f.status)
+  if (f.inspectorId) q = q.eq('inspector_id', f.inspectorId)
+  if (f.from) q = q.gte('received_at', new Date(`${f.from}T00:00:00`).toISOString())
+  if (f.to) q = q.lte('received_at', new Date(`${f.to}T23:59:59`).toISOString())
   const { data, error } = await q
   if (error) throw error
   return (data ?? []) as unknown as ReceptionSummary[]
