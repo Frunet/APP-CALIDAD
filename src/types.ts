@@ -104,6 +104,7 @@ export interface ReceptionDraft {
   dry_matter: string
   notes: string
   status: 'draft' | 'closed'
+  inspector_name?: string // solo lectura
   pallets: PalletDraft[]
   defects: DefectDraft[]
   photos: PhotoDraft[]

@@ -51,6 +51,6 @@ Tablas: `profiles`, `suppliers`, `products`, `calibers`, `agreements` (especific
 ## Pendiente / ideas
 
 - Cola sin conexión para guardar recepciones sin cobertura (hoy la PWA cachea la app, pero guardar requiere red).
-- PDF generado en servidor (hoy: imprimir → guardar como PDF).
+- PDF generado en servidor (hoy se genera en el navegador con jsPDF; tarda más con muchas fotos).
 - Importar especificaciones/recepciones del `localStorage` de la v1.6.
 - Despliegue (Vercel/Netlify/Cloudflare Pages) con las dos variables `VITE_*`.

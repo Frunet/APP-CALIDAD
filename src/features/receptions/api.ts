@@ -85,7 +85,7 @@ export async function signedUrls(paths: string[]): Promise<Record<string, string
 
 export async function loadReception(id: string): Promise<ReceptionDraft> {
   const [rec, pal, def, pho] = await Promise.all([
-    supabase.from('receptions').select('*').eq('id', id).single(),
+    supabase.from('receptions').select('*, profiles(full_name)').eq('id', id).single(),
     supabase.from('pallets').select('position, boxes, gross_kg').eq('reception_id', id).order('position'),
     supabase.from('defects').select('id, name, percent').eq('reception_id', id),
     supabase.from('photos').select('id, kind, defect_id, storage_path').eq('reception_id', id).order('created_at'),
@@ -119,6 +119,7 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
     dry_matter: s(r.dry_matter),
     notes: r.notes,
     status: r.status,
+    inspector_name: (r.profiles as { full_name: string } | null)?.full_name ?? '',
     pallets: (pal.data ?? []).map((p) => ({ boxes: s(p.boxes), gross: s(p.gross_kg) })),
     defects: defects.length ? defects : [{ id: newId(), name: '', percent: '' }],
     photos: (pho.data ?? []).map((p) => ({

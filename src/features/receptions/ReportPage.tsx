@@ -3,6 +3,8 @@ import { Link, useParams } from 'react-router-dom'
 import { palletResult, summarize, toNumber } from '../../lib/calculations'
 import { GENERAL_PHOTO_LABELS, type ReceptionDraft } from '../../types'
 import { useMasters } from '../../lib/masters'
+import { useAuth } from '../../auth/AuthContext'
+import { exportReceptionsPdf } from './pdfExport'
 import { loadReception } from './api'
 
 export function ReportPage() {
@@ -10,6 +12,8 @@ export function ReportPage() {
   const [d, setD] = useState<ReceptionDraft | null>(null)
   const [error, setError] = useState<string | null>(null)
   const { products } = useMasters()
+  const { profile } = useAuth()
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -42,6 +46,23 @@ export function ReportPage() {
     `Palets bajo mínimo: ${summary.belowMin}/${summary.weighed}`,
   ].join('\n')
 
+  async function downloadPdf() {
+    setPdfBusy(true)
+    try {
+      await exportReceptionsPdf({
+        ids: [d!.id!],
+        products,
+        generatedBy: profile?.full_name || 'Usuario',
+        includePhotos: true,
+        title: 'Informe de control de recepción',
+        filename: `informe-${d!.supplier_name}-${d!.lot || 'sin-lote'}-${d!.received_at.slice(0, 10)}`,
+      })
+    } catch {
+      alert('No se pudo generar el PDF.')
+    }
+    setPdfBusy(false)
+  }
+
   async function share() {
     if (navigator.share) {
       try {
@@ -61,8 +82,11 @@ export function ReportPage() {
           <Link className="btn secondary" to={`/receptions/${d.id}`}>
             ← Editar
           </Link>
-          <button className="btn ok" onClick={() => window.print()}>
-            Imprimir / Guardar PDF
+          <button className="btn ok" onClick={downloadPdf} disabled={pdfBusy}>
+            {pdfBusy ? 'Generando PDF…' : 'Descargar PDF'}
+          </button>
+          <button className="btn secondary" onClick={() => window.print()}>
+            Imprimir
           </button>
           <button className="btn" onClick={share}>
             Compartir
@@ -75,7 +99,7 @@ export function ReportPage() {
           </a>
         </div>
         <p className="muted">
-          En el móvil, "Imprimir / Guardar PDF" abre el diálogo del sistema: elige "Guardar como PDF" y compártelo por email o WhatsApp.
+          "Descargar PDF" guarda el informe completo, con todas las fotos, en el dispositivo; después puedes compartirlo por email o WhatsApp.
         </p>
       </div>
 
