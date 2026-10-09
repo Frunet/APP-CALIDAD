@@ -37,7 +37,7 @@ export function Layout() {
           Historial
         </NavLink>
         <NavLink to="/receptions/new">+ Nueva</NavLink>
-        <NavLink to="/agreements">Acuerdos</NavLink>
+        <NavLink to="/specifications">Especificaciones</NavLink>
         {isAdmin && <NavLink to="/masters">Maestros</NavLink>}
         {isAdmin && <NavLink to="/users">Usuarios</NavLink>}
       </nav>

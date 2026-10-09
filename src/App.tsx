@@ -17,7 +17,7 @@ export function App() {
         <Route path="receptions/new" element={<ReceptionEditor />} />
         <Route path="receptions/:id" element={<ReceptionEditor />} />
         <Route path="receptions/:id/report" element={<ReportPage />} />
-        <Route path="agreements" element={<AgreementsPage />} />
+        <Route path="specifications" element={<AgreementsPage />} />
         <Route
           path="masters"
           element={

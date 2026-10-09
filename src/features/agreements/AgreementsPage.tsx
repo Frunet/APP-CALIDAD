@@ -29,7 +29,7 @@ export function AgreementsPage() {
   const [error, setError] = useState<string | null>(null)
 
   const refresh = useCallback(() => {
-    listAgreements().then(setList).catch(() => setError('No se pudieron cargar los acuerdos.'))
+    listAgreements().then(setList).catch(() => setError('No se pudieron cargar las especificaciones.'))
   }, [])
   useEffect(refresh, [refresh])
 
@@ -52,13 +52,13 @@ export function AgreementsPage() {
     const { error: err } = form.id
       ? await supabase.from('agreements').update(row).eq('id', form.id)
       : await supabase.from('agreements').insert(row)
-    if (err) return setError(err.code === '23505' ? 'Ya existe un acuerdo con ese proveedor, producto y formato.' : err.message)
+    if (err) return setError(err.code === '23505' ? 'Ya existe una especificación para ese proveedor, producto y formato.' : err.message)
     setForm(blank)
     refresh()
   }
 
   async function remove(id: string) {
-    if (!confirm('¿Eliminar este acuerdo?')) return
+    if (!confirm('¿Eliminar esta especificación?')) return
     const { error: err } = await supabase.from('agreements').delete().eq('id', id)
     if (err) setError(err.message)
     refresh()
@@ -80,7 +80,7 @@ export function AgreementsPage() {
     <div>
       {isAdmin && (
         <div className="card">
-          <h2>Acuerdo con proveedor</h2>
+          <h2>Especificación de proveedor</h2>
           <p className="muted">
             Al iniciar una recepción con el mismo proveedor, producto y formato, estas condiciones se cargan solas. Los proveedores y
             productos se dan de alta en Maestros.
@@ -107,17 +107,17 @@ export function AgreementsPage() {
           </div>
           {error && <div className="result bad">{error}</div>}
           <div className="actions">
-            <button className="btn ok" onClick={save}>{form.id ? 'Guardar cambios' : 'Guardar acuerdo'}</button>
+            <button className="btn ok" onClick={save}>{form.id ? 'Guardar cambios' : 'Guardar especificación'}</button>
             {form.id && <button className="btn secondary" onClick={() => setForm(blank)}>Cancelar edición</button>}
           </div>
         </div>
       )}
 
       <div className="card">
-        <h2>Acuerdos guardados</h2>
-        {!isAdmin && <p className="muted">Solo los administradores pueden modificar los acuerdos.</p>}
+        <h2>Especificaciones guardadas</h2>
+        {!isAdmin && <p className="muted">Solo los administradores pueden modificar las especificaciones.</p>}
         {!isAdmin && error && <div className="result bad">{error}</div>}
-        {list.length === 0 && <p className="muted">No hay acuerdos guardados todavía.</p>}
+        {list.length === 0 && <p className="muted">No hay especificaciones guardadas todavía.</p>}
         <div className="list">
           {list.map((a) => (
             <div className="list-item" key={a.id}>

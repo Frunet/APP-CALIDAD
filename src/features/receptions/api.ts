@@ -241,7 +241,7 @@ export async function listAgreements(): Promise<AgreementWithSupplier[]> {
   return (data ?? []) as unknown as AgreementWithSupplier[]
 }
 
-/** Acuerdo del proveedor+producto: formato exacto, si no el genérico (sin formato). */
+/** Especificación del proveedor+producto: formato exacto, si no el genérico (sin formato). */
 export function findAgreement(
   list: AgreementWithSupplier[],
   supplierId: string | null,

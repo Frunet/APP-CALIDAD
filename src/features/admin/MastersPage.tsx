@@ -13,7 +13,7 @@ const TABS: { id: Tab; label: string }[] = [
 
 function explain(err: { code?: string; message: string }): string {
   if (err.code === '23505') return 'Ya existe un registro con ese nombre.'
-  if (err.code === '23503') return 'Está en uso (recepciones o acuerdos). No se puede eliminar: desactívalo para que no se pueda elegir.'
+  if (err.code === '23503') return 'Está en uso (recepciones o especificaciones). No se puede eliminar: desactívalo para que no se pueda elegir.'
   return err.message
 }
 
@@ -113,7 +113,7 @@ export function MastersPage() {
                 </label>
                 <button
                   className="btn danger"
-                  onClick={() => remove('suppliers', s.id, s.name, '\n\nTambién se eliminarán sus acuerdos.')}
+                  onClick={() => remove('suppliers', s.id, s.name, '\n\nTambién se eliminarán sus especificaciones.')}
                 >
                   Eliminar
                 </button>
@@ -160,7 +160,7 @@ export function MastersPage() {
                 </label>
                 <button
                   className="btn danger"
-                  onClick={() => remove('products', p.id, p.name, '\n\nTambién se eliminarán sus calibres y acuerdos.')}
+                  onClick={() => remove('products', p.id, p.name, '\n\nTambién se eliminarán sus calibres y especificaciones.')}
                 >
                   Eliminar
                 </button>
