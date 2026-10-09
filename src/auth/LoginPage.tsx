@@ -2,6 +2,16 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 
+const USER_DOMAIN = 'frutacheck.test'
+
+/** Un nombre de usuario sin @ (p. ej. "IV GAMA") se convierte en iv-gama@frutacheck.test. */
+export function toLoginEmail(input: string): string {
+  const v = input.trim()
+  if (v.includes('@')) return v
+  const slug = v.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return `${slug}@${USER_DOMAIN}`
+}
+
 export function LoginPage() {
   const { session, signIn } = useAuth()
   const [email, setEmail] = useState('')
@@ -14,7 +24,7 @@ export function LoginPage() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setError(await signIn(email.trim(), password))
+    setError(await signIn(toLoginEmail(email), password))
     setBusy(false)
   }
 
@@ -24,8 +34,8 @@ export function LoginPage() {
         <h1>FrutaCheck QA</h1>
         <p className="muted">Control de calidad de recepción</p>
         <label>
-          Email
-          <input type="email" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          Usuario
+          <input type="text" autoCapitalize="none" autoCorrect="off" autoComplete="username" required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label>
           Contraseña
