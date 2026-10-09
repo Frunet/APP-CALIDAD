@@ -76,12 +76,19 @@ export function ReportPage() {
     if (pdfFile) downloadBlob(pdfFile, pdfFile.name)
   }
 
-  /** Envía el PDF como archivo adjunto mediante la hoja de compartir del dispositivo. */
+  const isMobile =
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent) || (navigator.maxTouchPoints > 1 && /Macintosh/.test(navigator.userAgent))
+
+  /**
+   * En móvil (y con "Compartir…") el PDF va adjunto mediante la hoja de compartir del dispositivo.
+   * En ordenador, WhatsApp abre WhatsApp Web (pantalla con el código QR) y el correo abre el programa
+   * de correo; el PDF se descarga para adjuntarlo.
+   */
   async function sendPdf(channel: 'share' | 'email' | 'whatsapp') {
     if (!pdfFile) return
     setNotice(null)
     const data = { files: [pdfFile], title: subject, text: shareText }
-    if (navigator.canShare?.(data)) {
+    if ((channel === 'share' || isMobile) && navigator.canShare?.(data)) {
       try {
         await navigator.share(data)
         if (channel !== 'share') setNotice(`En la lista elige ${channel === 'email' ? 'tu aplicación de correo' : 'WhatsApp'}; el PDF ya va adjunto.`)
@@ -90,10 +97,13 @@ export function ReportPage() {
         if ((e as Error).name === 'AbortError') return // el usuario canceló
       }
     }
-    // Sin soporte para compartir archivos (p. ej. algunos navegadores de escritorio):
-    // se descarga el PDF y se abre el correo / WhatsApp con el texto para que lo adjunte.
+    // Ordenador (o navegador sin compartir archivos): se descarga el PDF y se abre el correo / WhatsApp.
     downloadBlob(pdfFile, pdfFile.name)
-    setNotice('Este navegador no permite adjuntar el PDF automáticamente: se ha descargado, adjúntalo al mensaje.')
+    setNotice(
+      channel === 'whatsapp'
+        ? 'Se ha descargado el PDF. En WhatsApp Web entra con el código QR y adjúntalo en la conversación (clip → Documento).'
+        : 'Se ha descargado el PDF: adjúntalo al correo.',
+    )
     if (channel === 'email') window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${shareText}\n\nAdjunto el informe en PDF.`)}`
     else if (channel === 'whatsapp') window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener')
   }
@@ -124,7 +134,7 @@ export function ReportPage() {
         {notice && <div className="result">{notice}</div>}
         {pdfFailed && <div className="result bad">No se pudo preparar el PDF. Recarga la página.</div>}
         <p className="muted">
-          "Enviar" abre la hoja de compartir del dispositivo con el PDF ya adjunto (informe completo con fotografías); elige WhatsApp o tu correo.
+          En el móvil, "Enviar" abre la hoja de compartir con el PDF ya adjunto (informe completo con fotografías). En el ordenador, WhatsApp abre WhatsApp Web (código QR) y el correo abre tu programa de correo; el PDF se descarga para adjuntarlo. "Compartir…" usa siempre la hoja de compartir del dispositivo.
         </p>
       </div>
 
