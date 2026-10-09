@@ -40,7 +40,7 @@ supabase/migrations/       esquema SQL, RLS y storage
 | **Administrador** | Todo lo de Calidad + **Maestros** (proveedores, productos, calibres), **especificaciones** y **usuarios**. |
 
 El **primer usuario** que se crea queda como administrador (trigger `handle_new_user`); los siguientes son inspectores.
-Los roles se cambian en la pestaña Usuarios. El login acepta el nombre de usuario (`IV GAMA` → `iv-gama@frutacheck.test`).
+Los roles se cambian en Maestros → Usuarios. El login acepta el nombre de usuario (`IV GAMA` → `iv-gama@frutacheck.test`).
 
 ### Crear usuarios
 

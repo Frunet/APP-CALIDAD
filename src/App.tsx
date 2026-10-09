@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './auth/LoginPage'
 import { Layout, RequireAdmin, RequireReviewer } from './components/Layout'
 import { HistoryPage } from './features/receptions/HistoryPage'
@@ -7,7 +7,6 @@ import { ReportPage } from './features/receptions/ReportPage'
 import { SavedPage } from './features/receptions/SavedPage'
 import { AgreementsPage } from './features/agreements/AgreementsPage'
 import { MastersPage } from './features/admin/MastersPage'
-import { UsersPage } from './features/admin/UsersPage'
 
 export function App() {
   return (
@@ -49,14 +48,7 @@ export function App() {
             </RequireAdmin>
           }
         />
-        <Route
-          path="users"
-          element={
-            <RequireAdmin>
-              <UsersPage />
-            </RequireAdmin>
-          }
-        />
+        <Route path="users" element={<Navigate to="/masters" replace />} />
         <Route path="*" element={<div className="card">Página no encontrada.</div>} />
       </Route>
     </Routes>

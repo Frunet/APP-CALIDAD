@@ -34,15 +34,14 @@ export function Layout() {
         </button>
       </header>
       <nav className="app-nav no-print">
+        <NavLink to="/receptions/new">Nuevo</NavLink>
+        <NavLink to="/specifications">Especificaciones</NavLink>
         {canReview && (
           <NavLink to="/" end>
             Historial
           </NavLink>
         )}
-        <NavLink to="/receptions/new">+ Nueva</NavLink>
-        <NavLink to="/specifications">Especificaciones</NavLink>
         {isAdmin && <NavLink to="/masters">Maestros</NavLink>}
-        {isAdmin && <NavLink to="/users">Usuarios</NavLink>}
       </nav>
       <main className="page">
         <Outlet />

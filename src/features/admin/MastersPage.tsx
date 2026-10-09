@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { byCaliberName, useMasters } from '../../lib/masters'
+import { UsersPage } from './UsersPage'
 
-type Tab = 'suppliers' | 'products' | 'calibers'
+type Tab = 'suppliers' | 'products' | 'calibers' | 'users'
 type Table = 'suppliers' | 'products' | 'calibers'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'suppliers', label: 'Proveedores' },
   { id: 'products', label: 'Productos' },
   { id: 'calibers', label: 'Calibres' },
+  { id: 'users', label: 'Usuarios' },
 ]
 
 function explain(err: { code?: string; message: string }): string {
@@ -82,8 +84,10 @@ export function MastersPage() {
         ))}
       </div>
 
-      {(error || loadError) && <div className="result bad">{error ?? loadError}</div>}
-      {!loaded && !loadError && <p className="muted">Cargando…</p>}
+      {tab === 'users' && <UsersPage />}
+
+      {tab !== 'users' && (error || loadError) && <div className="result bad">{error ?? loadError}</div>}
+      {tab !== 'users' && !loaded && !loadError && <p className="muted">Cargando…</p>}
 
       {tab === 'suppliers' && (
         <div className="card">
