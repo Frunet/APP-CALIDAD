@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../lib/supabase'
-import type { Profile, Role } from '../../types'
+import { ROLE_LABELS, type Profile, type Role } from '../../types'
 
 export function UsersPage() {
   const { session } = useAuth()
@@ -34,7 +34,7 @@ export function UsersPage() {
       <h2>Usuarios</h2>
       <p className="muted">
         Los usuarios nuevos se crean en el panel de Supabase (Authentication → Users). Al entrar por primera vez aparecen aquí como
-        inspectores; desde aquí puedes cambiar su rol o desactivarlos.
+        inspectores; desde aquí puedes cambiar su rol o desactivarlos. Solo Administrador y Calidad ven el historial y los informes.
       </p>
       {error && <div className="result bad">{error}</div>}
       <div className="list">
@@ -51,8 +51,11 @@ export function UsersPage() {
             <label>
               Rol
               <select value={u.role} disabled={u.id === me} onChange={(e) => update(u.id, { role: e.target.value as Role })}>
-                <option value="inspector">Inspector</option>
-                <option value="admin">Administrador</option>
+                {(Object.keys(ROLE_LABELS) as Role[]).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABELS[r]}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="check">

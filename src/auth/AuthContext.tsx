@@ -8,6 +8,8 @@ interface AuthState {
   profile: Profile | null
   loading: boolean
   isAdmin: boolean
+  /** Puede ver el historial y los informes de todas las recepciones (administrador y calidad). */
+  canReview: boolean
   signIn: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
 }
@@ -58,6 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     profile,
     loading,
     isAdmin: profile?.role === 'admin' && profile.active,
+    canReview: !!profile && profile.active && (profile.role === 'admin' || profile.role === 'calidad'),
     signIn: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
       return error ? 'Email o contraseña incorrectos.' : null

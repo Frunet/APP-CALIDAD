@@ -1,4 +1,10 @@
-export type Role = 'inspector' | 'admin'
+export type Role = 'inspector' | 'calidad' | 'admin'
+
+export const ROLE_LABELS: Record<Role, string> = {
+  inspector: 'Inspector',
+  calidad: 'Calidad',
+  admin: 'Administrador',
+}
 export type PhotoKind = 'label' | 'pallet' | 'cut' | 'defect'
 
 export const GENERAL_PHOTO_LABELS: Record<Exclude<PhotoKind, 'defect'>, string> = {

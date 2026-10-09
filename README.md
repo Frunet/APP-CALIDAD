@@ -33,10 +33,14 @@ supabase/migrations/       esquema SQL, RLS y storage
 
 ## Roles
 
-- **Inspector:** crea y edita sus recepciones; ve las especificaciones.
-- **Administrador:** ve todas las recepciones, gestiona los maestros (proveedores, productos, calibres), las especificaciones y los usuarios.
+| Rol | Puede |
+|---|---|
+| **Inspector** | Crear recepciones (con fotos). No ve el historial ni los informes. |
+| **Calidad** | Todo lo del inspector + **Historial** e **informes** de todas las recepciones: filtros, Excel, PDF, modificar y eliminar. |
+| **Administrador** | Todo lo de Calidad + **Maestros** (proveedores, productos, calibres), **especificaciones** y **usuarios**. |
 
 El **primer usuario** que se crea queda como administrador (trigger `handle_new_user`); los siguientes son inspectores.
+Los roles se cambian en la pestaña Usuarios. El login acepta el nombre de usuario (`IV GAMA` → `iv-gama@frutacheck.test`).
 
 ### Crear usuarios
 
@@ -52,5 +56,6 @@ Tablas: `profiles`, `suppliers`, `products`, `calibers`, `agreements` (especific
 
 - Cola sin conexión para guardar recepciones sin cobertura (hoy la PWA cachea la app, pero guardar requiere red).
 - PDF generado en servidor (hoy se genera en el navegador con jsPDF; tarda más con muchas fotos).
+- El Excel y el PDF se generan en el navegador; con miles de recepciones convendría hacerlo en servidor.
 - Importar especificaciones/recepciones del `localStorage` de la v1.6.
 - Despliegue (Vercel/Netlify/Cloudflare Pages) con las dos variables `VITE_*`.

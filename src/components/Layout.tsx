@@ -1,8 +1,9 @@
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { ROLE_LABELS } from '../types'
 
 export function Layout() {
-  const { session, profile, loading, isAdmin, signOut } = useAuth()
+  const { session, profile, loading, isAdmin, canReview, signOut } = useAuth()
 
   if (loading) return <div className="center muted">Cargando…</div>
   if (!session) return <Navigate to="/login" replace />
@@ -25,7 +26,7 @@ export function Layout() {
         <div>
           <h1>FrutaCheck QA</h1>
           <small>
-            {profile.full_name || session.user.email} · {isAdmin ? 'Administrador' : 'Inspector'}
+            {profile.full_name || session.user.email} · {ROLE_LABELS[profile.role]}
           </small>
         </div>
         <button className="btn secondary" onClick={signOut}>
@@ -33,9 +34,11 @@ export function Layout() {
         </button>
       </header>
       <nav className="app-nav no-print">
-        <NavLink to="/" end>
-          Historial
-        </NavLink>
+        {canReview && (
+          <NavLink to="/" end>
+            Historial
+          </NavLink>
+        )}
         <NavLink to="/receptions/new">+ Nueva</NavLink>
         <NavLink to="/specifications">Especificaciones</NavLink>
         {isAdmin && <NavLink to="/masters">Maestros</NavLink>}
@@ -46,6 +49,12 @@ export function Layout() {
       </main>
     </>
   )
+}
+
+/** Historial e informes: solo administrador y calidad. */
+export function RequireReviewer({ children }: { children: JSX.Element }) {
+  const { canReview } = useAuth()
+  return canReview ? children : <Navigate to="/receptions/new" replace />
 }
 
 export function RequireAdmin({ children }: { children: JSX.Element }) {

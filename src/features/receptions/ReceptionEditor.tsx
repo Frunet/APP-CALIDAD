@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useAuth } from '../../auth/AuthContext'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { palletResult, summarize, toNumber, type WeightConfig } from '../../lib/calculations'
 import { byCaliberName, useMasters } from '../../lib/masters'
@@ -20,6 +21,7 @@ const STEPS = ['Recepción', 'Palets', 'Calidad', 'Fotos'] as const
 export function ReceptionEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const { canReview } = useAuth()
   const [draft, setDraft] = useState<ReceptionDraft | null>(id ? null : emptyDraft())
   const [step, setStep] = useState(0)
   const [agreements, setAgreements] = useState<AgreementWithSupplier[]>([])
@@ -140,7 +142,8 @@ export function ReceptionEditor() {
       // La materia seca solo aplica a los productos que la piden.
       const lab = currentProduct?.has_dry_matter ? {} : { dry_matter: '', lab_ref: '' }
       const savedId = await saveReception({ ...draft!, ...lab, status: finalStatus })
-      navigate(thenReport ? `/receptions/${savedId}/report` : '/', { replace: true })
+      if (!canReview) navigate('/saved', { replace: true })
+      else navigate(thenReport ? `/receptions/${savedId}/report` : '/', { replace: true })
     } catch (e) {
       setError(`No se pudo guardar: ${(e as { message?: string }).message ?? 'error desconocido'}`)
       setSaving(false)
@@ -455,7 +458,7 @@ export function ReceptionEditor() {
         </button>
         {step === STEPS.length - 1 && (
           <button className="btn ok" disabled={saving || processing > 0} onClick={() => save('closed', true)}>
-            Cerrar y ver informe
+            {canReview ? 'Cerrar y ver informe' : 'Cerrar recepción'}
           </button>
         )}
         {draft.id && (
