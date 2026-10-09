@@ -1,0 +1,596 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>FrutaCheck QA v1.6</title>
+<style>
+:root{--bg:#f4f6f8;--card:#fff;--text:#17202a;--muted:#667085;--line:#d9dee5;--ok:#137333;--bad:#b42318;--accent:#1769aa}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);font-family:Arial,sans-serif;color:var(--text)}
+header{background:#173f5f;color:#fff;padding:15px;position:sticky;top:0;z-index:10}header h1{margin:0;font-size:22px}header small{opacity:.85}
+nav{display:flex;gap:6px;overflow:auto;background:#fff;border-bottom:1px solid var(--line);padding:8px;position:sticky;top:64px;z-index:9}
+nav button{border:0;background:#eef2f6;padding:10px 12px;border-radius:9px;white-space:nowrap;font-weight:700}nav button.active{background:#173f5f;color:#fff}
+main{max-width:1100px;margin:auto;padding:14px}.screen{display:none}.screen.active{display:block}
+.card,.report{background:#fff;border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px;box-shadow:0 2px 7px #0000000a}
+h2{margin:0 0 12px;font-size:19px}h3{margin:14px 0 8px;font-size:16px}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:block;font-size:13px;font-weight:700;color:#344054}input,select,textarea{width:100%;margin-top:5px;padding:11px;border:1px solid #cbd2d9;border-radius:9px;font-size:16px;background:#fff}textarea{min-height:90px}
+.btn{border:0;border-radius:9px;padding:11px 15px;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}.btn.secondary{background:#667085}.btn.ok{background:#137333}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.muted{color:var(--muted);font-size:13px}
+.pallet{border:1px solid var(--line);border-radius:12px;padding:12px;margin:10px 0;background:#fafbfc}
+.pallet-head{display:flex;justify-content:space-between;font-weight:700;margin-bottom:9px}.pgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.result{margin-top:9px;padding:9px;border-radius:8px;background:#eef2f6;font-size:14px}.result.ok{background:#e8f5e9;color:var(--ok)}.result.bad{background:#fdecec;color:var(--bad)}
+.badge{padding:4px 8px;border-radius:20px;background:#eef2f6;font-size:12px}.photo-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.photo-box{border:1px dashed #aab4bf;border-radius:12px;padding:10px;background:#fafbfc}.photo-box input{font-size:14px}
+.thumb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px}.thumb{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:8px;border:1px solid #ddd;background:#edf0f3}
+.photo-count{font-size:12px;color:var(--muted);margin-top:6px}.hidden{display:none!important}
+.report-head{display:flex;justify-content:space-between;gap:15px;border-bottom:2px solid #173f5f;padding-bottom:12px}
+.report table{width:100%;border-collapse:collapse;margin:12px 0}.report th,.report td{border:1px solid #ccd3da;padding:7px;text-align:left;font-size:13px}
+.report-photos{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.report-photo{break-inside:avoid;border:1px solid #ddd;border-radius:8px;padding:8px}.report-photo img{width:100%;height:220px;object-fit:contain;display:block;margin-top:6px;background:#f5f6f7}
+@media(max-width:700px){.grid,.photo-grid,.report-photos{grid-template-columns:1fr}.pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.report{padding:12px}}
+@media print{body{background:#fff}.no-print,header,nav{display:none!important}main{padding:0;max-width:none}.screen{display:none!important}.screen.print-screen{display:block!important}.report{border:0;box-shadow:none;padding:0}.report-photo{page-break-inside:avoid}.report-photo img{max-height:260px}}
+</style>
+
+<style id="frutacheck-print-fix">
+@media print {
+  html, body { background:#fff !important; color:#000 !important; }
+  body * { visibility: hidden !important; }
+  #reportScreen, #reportScreen * { visibility: visible !important; }
+  #reportScreen { display:block !important; position:absolute !important; left:0 !important; top:0 !important;
+                  width:100% !important; background:#fff !important; color:#000 !important; }
+  #reportScreen .no-print, #reportScreen button, #reportScreen .actions, #reportScreen nav { display:none !important; }
+  .report-page, .report-container, .card, .section, table { background:#fff !important; color:#000 !important; }
+  table { width:100% !important; border-collapse:collapse !important; }
+  th, td { border:1px solid #777 !important; color:#000 !important; background:#fff !important; }
+  img { max-width:100% !important; }
+}
+</style>
+
+<style id="frutacheck-v14-css">
+.config-row button { margin-right:6px; }
+.btn.danger{background:#b42318}
+.muted { opacity:.75; }
+@media print {
+  .screen { min-height:auto !important; }
+}
+</style>
+</head>
+<body>
+<header><h1>FrutaCheck QA</h1><small>Control de calidad de recepción · v1.6</small></header>
+<nav>
+<button data-screen="reception" class="active">1. Recepción</button>
+<button data-screen="pallets">2. Palets</button>
+<button data-screen="quality">3. Calidad</button>
+<button data-screen="photos">4. Fotos</button>
+<button data-screen="report">5. Informe</button>
+<button data-screen="configScreen">⚙️ Acuerdos</button>
+</nav>
+<main>
+<section id="reception" class="screen active">
+<div class="card">
+<h2>Datos de recepción</h2>
+<div id="configLoadedBanner" style="margin:0 0 12px;padding:8px;border-radius:8px;background:#eef2f6;font-weight:600">Sin condiciones de proveedor cargadas</div>
+<div class="grid">
+<label>Producto<select id="product"><option>Piña</option><option>Mango</option><option>Aguacate</option></select></label>
+<label>Proveedor<input id="supplier" placeholder="Proveedor"></label>
+<label>Formato / referencia<input id="format" placeholder="Ej. Caja 12 kg"></label>
+<label>Lote<input id="lot" placeholder="Lote"></label>
+<label>Origen<input id="origin" placeholder="País / zona"></label>
+<label>Matrícula / camión<input id="truck" placeholder="Matrícula"></label>
+<label>Fecha y hora<input id="date" type="datetime-local"></label>
+<label>Nº de palets<input id="numPallets" type="number" min="1" value="1"></label>
+<label>Nº de cajas por palet<input id="defaultBoxes" type="number" min="1" value="80"></label>
+<label>Mínimo kg/caja<input id="minKgBox" type="number" step="0.1" value="12"></label>
+<label>Tara caja (kg/unidad)<input id="tareBox" type="number" step="0.01" value="0"></label>
+<label>Tara palet (kg)<input id="tarePallet" type="number" step="0.1" value="0"></label>
+<label>Tara otros (kg)<input id="tareOther" type="number" step="0.1" value="0"></label>
+</div>
+<p class="muted">El mínimo neto de cada palet se calcula automáticamente: nº de cajas × kg mínimo/caja. Ejemplo: 80 cajas × 12 kg = 960 kg netos mínimos.</p>
+<div class="actions"><button class="btn" onclick="go('pallets')">Continuar a pesaje →</button></div>
+</div>
+</section>
+
+<section id="pallets" class="screen">
+<div class="card">
+<h2>Pesaje individual de palets</h2>
+<p class="muted">La tara total se calcula como: (cajas × tara/caja) + tara del palet + otras taras. El peso neto se compara con el mínimo calculado.</p>
+<div id="palletList"></div>
+<div id="weightSummary" class="result"></div>
+<div class="actions"><button class="btn secondary" onclick="go('reception')">← Atrás</button><button class="btn" onclick="go('quality')">Continuar a calidad →</button></div>
+</div>
+</section>
+
+<section id="quality" class="screen">
+<div class="card">
+<h2>Control de calidad</h2>
+<div class="grid">
+<label>Temperatura (°C)<input id="temperature" type="number" step="0.1"></label>
+<label>Firmeza<input id="firmness" placeholder="Firme / media / blanda"></label>
+<label>°Brix<input id="brix" type="number" step="0.1"></label>
+</div>
+
+<h3>Defectos detectados</h3>
+<p class="muted">Añade tantos defectos como necesites. Cada defecto puede llevar su porcentaje y varias fotografías.</p>
+<div id="defectsList"></div>
+<div class="actions"><button class="btn secondary" type="button" onclick="addDefect()">+ Añadir defecto</button></div>
+
+<div id="avocadoLab">
+<h3>Aguacate · materia seca laboratorio</h3>
+<div class="grid"><label>Referencia laboratorio<input id="labRef" placeholder="LAB-2026-001"></label><label>Resultado (%)<input id="dryMatter" type="number" step="0.1"></label></div>
+<p class="muted">Puede quedar pendiente y completarse posteriormente.</p>
+</div>
+<label>Observaciones<textarea id="notes" placeholder="Incidencias, aspecto, daños, maduración..."></textarea></label>
+<div class="actions"><button class="btn secondary" onclick="go('pallets')">← Atrás</button><button class="btn" onclick="go('photos')">Continuar a fotos generales →</button></div>
+</div>
+</section>
+
+<section id="photos" class="screen">
+<div class="card">
+<h2>Fotografías generales</h2>
+<p class="muted">Las fotografías de defectos se realizan dentro de la pestaña Calidad, asociadas a cada defecto. Aquí quedan las fotografías generales de recepción.</p>
+<div class="photo-grid" id="photoGrid"></div>
+<div class="actions"><button class="btn secondary" onclick="go('quality')">← Volver a calidad</button><button class="btn secondary" onclick="go('configScreen')">⚙️ Acuerdos</button><button class="btn" onclick="generateReport()">Generar informe →</button></div>
+</div>
+</section>
+
+<section id="report" class="screen">
+<div class="card no-print">
+<div class="actions">
+<button class="btn secondary" onclick="go('photos')">← Volver</button>
+<button class="btn ok" onclick="generatePDF()">Generar PDF / Guardar como PDF</button>
+<button class="btn" onclick="shareReport()">Compartir informe</button>
+<button class="btn" onclick="emailReport()">Enviar por email</button>
+<button class="btn" onclick="whatsappReport()">Enviar por WhatsApp</button>
+<button class="btn" onclick="saveReception()">Guardar recepción</button>
+</div>
+<p class="muted">En Android, “Generar PDF / Guardar como PDF” abre la impresión del teléfono. Después puedes compartir el PDF por WhatsApp o email. El botón Compartir usa la hoja de compartir del dispositivo cuando el navegador lo permite.</p>
+</div>
+<div id="reportContent" class="report"></div>
+</section>
+
+<section id="configScreen" class="screen">
+  <div class="card">
+    <h2>⚙️ Configuración de acuerdos</h2>
+    <p class="muted">Guarda las condiciones pactadas por proveedor, producto y formato. Al iniciar una recepción se cargarán automáticamente.</p>
+    <div class="grid">
+      <label>Proveedor
+        <input id="cfgSupplier" placeholder="Ej. Proveedor Tropical">
+      </label>
+      <label>Producto
+        <select id="cfgProduct">
+          <option>Piña</option><option>Mango</option><option>Aguacate</option>
+        </select>
+      </label>
+      <label>Formato / referencia
+        <input id="cfgFormat" placeholder="Ej. Caja 12 kg">
+      </label>
+      <label>Cajas por palet
+        <input id="cfgBoxes" type="number" min="0" step="1" value="80">
+      </label>
+      <label>Mínimo kg/caja
+        <input id="cfgMinKg" type="number" min="0" step="0.01" value="12">
+      </label>
+      <label>Tara caja (kg)
+        <input id="cfgTareBox" type="number" min="0" step="0.001" value="0">
+      </label>
+      <label>Tara palet (kg)
+        <input id="cfgTarePallet" type="number" min="0" step="0.001" value="0">
+      </label>
+      <label>Otras taras (kg)
+        <input id="cfgTareOther" type="number" min="0" step="0.001" value="0">
+      </label>
+    </div>
+    <div class="actions">
+      <button class="btn ok" onclick="saveConfig()">💾 Guardar acuerdo</button>
+      <button class="btn secondary" onclick="clearConfigForm()">Limpiar</button>
+    </div>
+  </div>
+  <div class="card">
+    <h3>Acuerdos guardados</h3>
+    <div id="configList"></div>
+  </div>
+</section>
+</main>
+
+<script>
+const $=id=>document.getElementById(id);
+let pallets=[];
+let photos={label:[],pallet:[],cut:[]};
+let defectsData=[];
+const photoLabels={label:"Albarán / etiqueta",pallet:"Palet",cut:"Corte / maduración"};
+
+function init(){
+  $("date").value=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+  ["numPallets","defaultBoxes","minKgBox","tareBox","tarePallet","tareOther"].forEach(id=>$(id).addEventListener("input",syncPallets));
+  $("product").addEventListener("change",toggleLab);
+  renderPhotoInputs();syncPallets();toggleLab();
+  if(defectsData.length===0)addDefect();
+}
+function go(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  const target=$(id); if(!target)return;
+  target.classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen===id));
+  if(id==="pallets")renderPallets();
+  if(id==="configScreen" && window.renderConfigList)window.renderConfigList();
+}
+function toggleLab(){$("avocadoLab").classList.toggle("hidden",$("product").value!=="Aguacate")}
+function syncPallets(){
+  const n=Math.max(1,parseInt($("numPallets").value||1));
+  while(pallets.length<n)pallets.push({boxes:"",bruto:""});
+  pallets=pallets.slice(0,n);
+  pallets.forEach(p=>{if(p.boxes==="")p.boxes=$("defaultBoxes").value});
+  renderPallets();
+}
+function config(){
+  return {
+    minKg:parseFloat($("minKgBox").value)||0,
+    tareBox:parseFloat($("tareBox").value)||0,
+    tarePallet:parseFloat($("tarePallet").value)||0,
+    tareOther:parseFloat($("tareOther").value)||0
+  };
+}
+function renderPallets(){
+  const list=$("palletList");list.innerHTML="";
+  pallets.forEach((p,i)=>{
+    const d=document.createElement("div");d.className="pallet";
+    d.innerHTML=`<div class="pallet-head"><span>Palet ${i+1}</span><span id="pallet-status-${i}" class="badge">Pendiente</span></div>
+      <div class="pgrid">
+      <label>Nº cajas<input id="boxes-${i}" type="number" min="1" data-index="${i}" class="boxes-input" value="${p.boxes}"></label>
+      <label>Peso bruto (kg)<input id="gross-${i}" type="number" step="0.1" inputmode="decimal" data-index="${i}" class="gross-input" value="${p.bruto}" placeholder="Ej. 1015"></label>
+      <label>Tara total (kg)<input id="taretotal-${i}" type="text" readonly></label>
+      </div>
+      <div id="pallet-result-${i}" class="result">Introduce el peso bruto.</div>`;
+    list.appendChild(d);
+    d.querySelector(".gross-input").addEventListener("input",e=>{pallets[i].bruto=e.target.value;updatePalletResult(i)});
+    d.querySelector(".boxes-input").addEventListener("input",e=>{pallets[i].boxes=e.target.value;updatePalletResult(i)});
+    updatePalletResult(i);
+  });
+  updateSummary();
+}
+function calc(i){
+  const c=config(), boxes=parseFloat(pallets[i].boxes)||0, bruto=parseFloat(pallets[i].bruto);
+  const tare=boxes*c.tareBox+c.tarePallet+c.tareOther;
+  const net=Number.isFinite(bruto)?bruto-tare:null;
+  const minimum=boxes*c.minKg;
+  return {boxes,tare,net,minimum,valid:Number.isFinite(net),ok:Number.isFinite(net)&&net>=minimum};
+}
+function updatePalletResult(i){
+  const r=calc(i),box=$(`pallet-result-${i}`),st=$(`pallet-status-${i}`),tt=$(`taretotal-${i}`);
+  if(tt)tt.value=r.tare.toFixed(2);
+  if(!box)return;
+  if(!r.valid){box.className="result";box.textContent=`Mínimo neto: ${r.minimum.toFixed(1)} kg`;st.textContent="Pendiente";return}
+  box.className="result "+(r.ok?"ok":"bad");
+  const diff=r.net-r.minimum;
+  box.textContent=`Neto: ${r.net.toFixed(1)} kg · Mínimo: ${r.minimum.toFixed(1)} kg · ${diff>=0?"+":""}${diff.toFixed(1)} kg`;
+  st.textContent=r.ok?"OK":"BAJO MÍNIMO";
+  updateSummary();
+}
+function updateSummary(){
+  const rs=pallets.map((_,i)=>calc(i)).filter(x=>x.valid),bad=rs.filter(x=>!x.ok).length;
+  $("weightSummary").className="result "+(bad?"bad":"ok");
+  $("weightSummary").textContent=`Palets pesados: ${rs.length}/${pallets.length} · Por debajo del mínimo: ${bad}`;
+}
+
+function addDefect(){
+  const id=Date.now()+Math.floor(Math.random()*10000);
+  defectsData.push({id,name:"",percent:"",photos:[]});
+  renderDefects();
+}
+function removeDefect(id){
+  defectsData=defectsData.filter(d=>d.id!==id);
+  if(defectsData.length===0)addDefect(); else renderDefects();
+}
+function renderDefects(){
+  const el=$("defectsList"); el.innerHTML="";
+  defectsData.forEach((d,idx)=>{
+    const box=document.createElement("div");box.className="pallet";
+    box.innerHTML=`<div class="pallet-head"><span>Defecto ${idx+1}</span><button class="btn secondary" type="button" data-remove="${d.id}">Eliminar</button></div>
+      <div class="grid">
+      <label>Tipo de defecto<input class="defect-name" data-id="${d.id}" value="${esc(d.name)}" placeholder="Ej. golpe, podrido, moho, sobremaduro"></label>
+      <label>Porcentaje (%)<input class="defect-percent" data-id="${d.id}" type="number" step="0.1" min="0" max="100" value="${d.percent}" placeholder="Ej. 4.5"></label>
+      </div>
+      <label style="margin-top:10px">Fotografías del defecto
+        <input type="file" accept="image/*" capture="environment" multiple class="defect-files" data-id="${d.id}">
+      </label>
+      <div id="defect-thumbs-${d.id}" class="thumb-grid"></div>
+      <div id="defect-count-${d.id}" class="photo-count">${d.photos.length} foto${d.photos.length===1?"":"s"}</div>`;
+    el.appendChild(box);
+    box.querySelector("[data-remove]").addEventListener("click",()=>removeDefect(d.id));
+    box.querySelector(".defect-name").addEventListener("input",e=>d.name=e.target.value);
+    box.querySelector(".defect-percent").addEventListener("input",e=>d.percent=e.target.value);
+    box.querySelector(".defect-files").addEventListener("change",e=>handleDefectPhotos(d.id,[...e.target.files]));
+    renderDefectThumbs(d);
+  });
+}
+function renderDefectThumbs(d){
+  const t=$(`defect-thumbs-${d.id}`); if(!t)return;t.innerHTML="";
+  d.photos.forEach(src=>{const im=document.createElement("img");im.className="thumb";im.src=src;t.appendChild(im)});
+  $(`defect-count-${d.id}`).textContent=`${d.photos.length} foto${d.photos.length===1?"":"s"}`;
+}
+async function handleDefectPhotos(id,files){
+  const d=defectsData.find(x=>x.id===id);if(!d)return;
+  for(const f of files){try{d.photos.push(await compressDataUrl(await readFile(f)))}catch(e){}}
+  renderDefectThumbs(d);
+}
+function renderPhotoInputs(){
+  const g=$("photoGrid");g.innerHTML="";
+  Object.entries(photoLabels).forEach(([k,label])=>{
+    const d=document.createElement("div");d.className="photo-box";
+    d.innerHTML=`<b>${label}</b><input type="file" accept="image/*" capture="environment" multiple data-slot="${k}">
+      <div id="thumbs-${k}" class="thumb-grid"></div><div id="count-${k}" class="photo-count">0 fotos</div>`;
+    g.appendChild(d);
+    d.querySelector("input").addEventListener("change",e=>handlePhotos(k,[...e.target.files]));
+  });
+}
+function readFile(file){return new Promise((resolve,reject)=>{const fr=new FileReader();fr.onload=()=>resolve(fr.result);fr.onerror=reject;fr.readAsDataURL(file)})}
+function compressDataUrl(dataUrl,maxDim=1200,quality=.76){
+  return new Promise(resolve=>{
+    const img=new Image();img.onload=()=>{
+      const scale=Math.min(1,maxDim/Math.max(img.width,img.height)),c=document.createElement("canvas");
+      c.width=Math.round(img.width*scale);c.height=Math.round(img.height*scale);
+      c.getContext("2d").drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL("image/jpeg",quality));
+    };img.src=dataUrl;
+  });
+}
+async function handlePhotos(slot,files){
+  for(const f of files){try{photos[slot].push(await compressDataUrl(await readFile(f)))}catch(e){}}
+  renderThumbs(slot);
+}
+function renderThumbs(slot){
+  const t=$(`thumbs-${slot}`);t.innerHTML="";
+  photos[slot].forEach(src=>{const im=document.createElement("img");im.className="thumb";im.src=src;t.appendChild(im)});
+  $(`count-${slot}`).textContent=`${photos[slot].length} foto${photos[slot].length===1?"":"s"}`;
+}
+function val(id){return $(id).value||"—"} function esc(s){return String(s??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[m]))}
+function generateReport(){
+  const product=val("product");
+  const rows=pallets.map((p,i)=>{
+    const r=calc(i);
+    const avg=r.boxes>0 && r.valid ? r.net/r.boxes : null;
+    return `<tr>
+      <td>${i+1}</td><td>${r.boxes}</td><td>${p.bruto||"—"}</td><td>${r.valid?r.net.toFixed(1):"—"}</td>
+      <td>${r.minimum.toFixed(1)}</td><td>${avg!==null?avg.toFixed(2):"—"}</td>
+      <td>${r.valid?(r.ok?"OK":"BAJO MÍNIMO"):"Pendiente"}</td>
+    </tr>`;
+  }).join("");
+
+  let ph="";
+  Object.entries(photoLabels).forEach(([k,label])=>{
+    ph+=`<div class="report-photo"><b>${label} · ${photos[k].length} foto(s)</b>`;
+    if(photos[k].length)photos[k].forEach((src,j)=>ph+=`<img src="${src}" alt="${esc(label)} ${j+1}">`);
+    else ph+=`<p class="muted">Sin foto</p>`;
+    ph+="</div>";
+  });
+
+  let defectHtml="";
+  defectsData.forEach((d,i)=>{
+    defectHtml+=`<div class="report-photo"><b>Defecto ${i+1}: ${esc(d.name||"Sin especificar")} · ${esc(d.percent||"0")} %</b>`;
+    if(d.photos.length)d.photos.forEach((src,j)=>defectHtml+=`<img src="${src}" alt="Defecto ${i+1} ${j+1}">`);
+    else defectHtml+=`<p class="muted">Sin fotografía</p>`;
+    defectHtml+="</div>";
+  });
+
+  const dm=product==="Aguacate"?(val("dryMatter")==="—"?"Pendiente laboratorio":`${val("dryMatter")} %`):"No aplica";
+
+  $("reportContent").innerHTML=`<div class="report-head">
+  <div><h1 style="margin:0">FrutaCheck QA</h1><div>Informe de control de recepción</div></div>
+  <div><b>${esc(product)}</b><br>${esc(val("date"))}</div></div>
+
+  <h2>Datos de recepción</h2>
+  <table><tr><th>Proveedor</th><td>${esc(val("supplier"))}</td><th>Lote</th><td>${esc(val("lot"))}</td></tr>
+  <tr><th>Origen</th><td>${esc(val("origin"))}</td><th>Camión</th><td>${esc(val("truck"))}</td></tr>
+  <tr><th>Formato</th><td>${esc(val("format"))}</td><th>Fecha</th><td>${esc(val("date"))}</td></tr></table>
+
+  <h2>Resumen de peso por palet</h2>
+  <table><tr><th>Palet</th><th>Cajas</th><th>Peso bruto (kg)</th><th>Peso neto (kg)</th><th>Mínimo neto (kg)</th><th>Media caja (kg)</th><th>Estado</th></tr>${rows}</table>
+  <p><b>Lectura rápida:</b> la columna “Media caja” muestra el peso neto medio por caja. Si está por debajo de ${esc(val("minKgBox"))} kg/caja, el palet aparece como <b>BAJO MÍNIMO</b>.</p>
+  <p><b>Tara total por palet:</b> (cajas × ${esc(val("tareBox"))} kg/caja) + ${esc(val("tarePallet"))} kg palet + ${esc(val("tareOther"))} kg otros.</p>
+
+  <h2>Control de calidad</h2>
+  <table><tr><th>Temperatura</th><td>${esc(val("temperature"))} °C</td><th>Firmeza</th><td>${esc(val("firmness"))}</td></tr>
+  <tr><th>°Brix</th><td>${esc(val("brix"))}</td><th>Materia seca</th><td>${esc(dm)}${$("labRef").value?` · Ref. ${esc(val("labRef"))}`:""}</td></tr></table>
+
+  <h2>Defectos detectados</h2>
+  <table><tr><th>Defecto</th><th>Porcentaje</th><th>Fotografías</th></tr>
+  ${defectsData.map((d,i)=>`<tr><td>${esc(d.name||"Sin especificar")}</td><td>${esc(d.percent||"0")} %</td><td>${d.photos.length}</td></tr>`).join("")}</table>
+  <div class="report-photos">${defectHtml}</div>
+
+  <p><b>Observaciones:</b> ${esc(val("notes"))}</p>
+  <h2>Fotografías generales</h2><div class="report-photos">${ph}</div>
+  <p style="margin-top:25px;font-size:12px;color:#667085">FrutaCheck QA v1.6</p>`;
+
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  $("report").classList.add("active");
+  document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("active",b.dataset.screen==="report"));
+}
+
+function generatePDF(){
+  const content = document.getElementById("reportContent");
+  if(!content || !content.innerHTML.trim()){
+    alert("Primero genera el informe.");
+    return;
+  }
+  const printWindow = window.open("", "_blank");
+  if(!printWindow){
+    // Fallback for browsers that block a new window.
+    window.print();
+    return;
+  }
+  const css = `
+    *{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#000;font-family:Arial,sans-serif}
+    body{padding:14mm;font-size:12px}.report{background:#fff!important;color:#000!important;width:100%}
+    .report-head{display:flex;justify-content:space-between;gap:15px;border-bottom:2px solid #173f5f;padding-bottom:12px}
+    table{width:100%;border-collapse:collapse;margin:12px 0}th,td{border:1px solid #777;padding:7px;text-align:left;font-size:11px;color:#000;background:#fff}
+    th{font-weight:700}.report-photos{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .report-photo{break-inside:avoid;page-break-inside:avoid;border:1px solid #ddd;padding:7px;margin-bottom:10px}
+    .report-photo img{width:100%;height:190px;object-fit:contain;display:block;margin-top:5px;background:#fff}
+    h1{font-size:22px}h2{font-size:16px;margin:16px 0 8px}p{line-height:1.35}
+    @media print{body{padding:8mm}.report-photo img{max-height:190px}}
+  `;
+  printWindow.document.open();
+  printWindow.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>FrutaCheck QA - ${esc(val("lot"))}</title><style>${css}</style></head><body><div class="report">${content.innerHTML}</div></body></html>`);
+  printWindow.document.close();
+  const imgs=[...printWindow.document.images];
+  let done=false;
+  const doPrint=()=>{
+    if(done)return; done=true;
+    setTimeout(()=>{try{printWindow.focus();printWindow.print();}catch(e){ }},250);
+  };
+  if(!imgs.length){doPrint();return;}
+  let remaining=imgs.length;
+  imgs.forEach(img=>{
+    const finish=()=>{remaining--;if(remaining<=0)doPrint();};
+    if(img.complete) finish(); else {img.onload=finish;img.onerror=finish;}
+  });
+  setTimeout(doPrint,5000);
+}
+
+function reportText(){
+  return `FrutaCheck QA - ${val("product")}\
+Proveedor: ${val("supplier")}\
+Lote: ${val("lot")}\
+Fecha: ${val("date")}\
+\
+Informe de recepción generado desde FrutaCheck QA.`;
+}
+async function shareReport(){
+  const text=reportText();
+  if(navigator.share){try{await navigator.share({title:"FrutaCheck QA",text})}catch(e){}}
+  else alert("Este navegador no permite compartir directamente. Usa Generar PDF / Guardar como PDF y comparte el PDF desde el teléfono.");
+}
+function emailReport(){location.href=`mailto:?subject=${encodeURIComponent("Informe FrutaCheck QA - "+val("lot"))}&body=${encodeURIComponent(reportText()+"\
+\
+Para adjuntar el PDF: genera primero el PDF y añádelo al correo.")}`}
+function whatsappReport(){location.href=`https://wa.me/?text=${encodeURIComponent(reportText()+"\
+\
+Genera primero el PDF y adjúntalo en WhatsApp.")}`}
+function saveReception(){
+  const record={id:Date.now(),date:val("date"),product:val("product"),supplier:val("supplier"),lot:val("lot"),origin:val("origin"),truck:val("truck"),pallets,palletConfig:{minKgBox:val("minKgBox"),tareBox:val("tareBox"),tarePallet:val("tarePallet"),tareOther:val("tareOther")},quality:{temperature:val("temperature"),firmness:val("firmness"),brix:val("brix"),defects:defectsData,labRef:val("labRef"),dryMatter:val("dryMatter"),notes:val("notes")},photos};
+  try{const old=JSON.parse(localStorage.getItem("frutacheck_history")||"[]");old.unshift(record);localStorage.setItem("frutacheck_history",JSON.stringify(old.slice(0,20)));alert("Recepción guardada correctamente.")}catch(e){alert("No hay espacio suficiente en el historial para guardar todas las fotos.")}
+}
+document.querySelectorAll("nav button").forEach(b=>b.addEventListener("click",()=>go(b.dataset.screen)));
+init();
+</script>
+
+
+<script id="frutacheck-v14">
+(function(){
+  const CFG_KEY = 'frutacheck_configs';
+
+  function cfgs(){
+    try { return JSON.parse(localStorage.getItem(CFG_KEY) || '[]'); } catch(e){ return []; }
+  }
+  function setCfgs(v){ localStorage.setItem(CFG_KEY, JSON.stringify(v)); }
+
+  window.renderConfigList = function(){
+    const el = document.getElementById('configList');
+    if(!el) return;
+    const list = cfgs();
+    if(!list.length){
+      el.innerHTML = '<p class="muted">No hay acuerdos guardados todavía.</p>';
+      return;
+    }
+    el.innerHTML = list.map(c => `
+      <div class="config-row" style="border:1px solid #ddd;padding:10px;margin:8px 0;border-radius:8px">
+        <strong>${esc(c.supplier)}</strong> · ${esc(c.product)}${c.format ? ' · '+esc(c.format):''}<br>
+        <span>${c.boxes} cajas/palet · mínimo ${num(c.minKg)} kg/caja · tara caja ${num(c.tareBox)} kg · palet ${num(c.tarePallet)} kg · otras ${num(c.tareOther)} kg</span>
+        <div style="margin-top:8px">
+          <button class="btn secondary" onclick="editConfig('${c.id}')">Editar</button>
+          <button class="btn danger" onclick="deleteConfig('${c.id}')">Eliminar</button>
+        </div>
+      </div>`).join('');
+  };
+
+  window.saveConfig = function(){
+    const supplier = val('cfgSupplier').trim();
+    const product = val('cfgProduct');
+    if(!supplier){ alert('Introduce el proveedor.'); return; }
+    const item = {
+      id: window._editingCfgId || ('cfg_' + Date.now()),
+      supplier, product,
+      format: val('cfgFormat').trim(),
+      boxes: toNum('cfgBoxes'),
+      minKg: toNum('cfgMinKg'),
+      tareBox: toNum('cfgTareBox'),
+      tarePallet: toNum('cfgTarePallet'),
+      tareOther: toNum('cfgTareOther')
+    };
+    const list = cfgs();
+    const idx = list.findIndex(x=>x.id===item.id);
+    if(idx>=0) list[idx]=item; else list.push(item);
+    setCfgs(list);
+    window._editingCfgId = null;
+    clearConfigForm();
+    renderConfigList();
+    alert('Acuerdo guardado.');
+  };
+
+  window.editConfig = function(id){
+    const c = cfgs().find(x=>x.id===id); if(!c) return;
+    window._editingCfgId=id;
+    setv('cfgSupplier',c.supplier); setv('cfgProduct',c.product); setv('cfgFormat',c.format||'');
+    setv('cfgBoxes',c.boxes); setv('cfgMinKg',c.minKg); setv('cfgTareBox',c.tareBox);
+    setv('cfgTarePallet',c.tarePallet); setv('cfgTareOther',c.tareOther);
+    if(window.go) window.go('configScreen');
+  };
+
+  window.deleteConfig = function(id){
+    if(!confirm('¿Eliminar este acuerdo?')) return;
+    setCfgs(cfgs().filter(x=>x.id!==id)); renderConfigList();
+  };
+
+  window.clearConfigForm = function(){
+    window._editingCfgId=null;
+    ['cfgSupplier','cfgFormat'].forEach(id=>setv(id,''));
+    setv('cfgProduct','Piña'); setv('cfgBoxes',80); setv('cfgMinKg',12);
+    setv('cfgTareBox',0); setv('cfgTarePallet',0); setv('cfgTareOther',0);
+  };
+
+  function findCfg(supplier, product, format){
+    const list=cfgs();
+    return list.find(c=>c.supplier.toLowerCase()===supplier.toLowerCase() &&
+                        c.product===product && (!format || !c.format || c.format.toLowerCase()===format.toLowerCase()));
+  }
+
+  window.applyMatchingConfig = function(){
+    const banner=document.getElementById('configLoadedBanner');
+    const c=findCfg(val('supplier').trim(),val('product'),val('format').trim());
+    if(!c){
+      if(banner){ banner.textContent='Sin condiciones de proveedor cargadas'; banner.style.background='#eef2f6'; }
+      return;
+    }
+    setv('defaultBoxes',c.boxes); setv('minKgBox',c.minKg); setv('tareBox',c.tareBox);
+    setv('tarePallet',c.tarePallet); setv('tareOther',c.tareOther);
+    pallets.forEach(p=>{ p.boxes=String(c.boxes); });
+    renderPallets();
+    window.currentFrutaCheckConfigId=c.id;
+    if(banner){
+      banner.textContent='✓ Condiciones cargadas: '+c.supplier+' · '+c.product+(c.format?' · '+c.format:'');
+      banner.style.background='#e8f5e9';
+    }
+  };
+
+  function val(id){ const e=document.getElementById(id); return e?e.value:''; }
+  function setv(id,v){ const e=document.getElementById(id); if(e)e.value=v; }
+  function toNum(id){ const x=parseFloat(val(id)); return isFinite(x)?x:0; }
+  function num(x){ return Number(x||0).toLocaleString('es-ES',{maximumFractionDigits:3}); }
+  function esc(s){ return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // Initialize config list and try to bind reception fields without breaking v1.3.
+  document.addEventListener('DOMContentLoaded',()=>{
+    renderConfigList();
+    const s=document.querySelector('#supplier, #proveedor, [name="supplier"], [name="proveedor"]');
+    const p=document.querySelector('#product, #producto, [name="product"], [name="producto"]');
+    const f=document.querySelector('#format, #formato, [name="format"], [name="formato"]');
+    [s,p,f].filter(Boolean).forEach(e=>{
+      e.addEventListener('change',()=>setTimeout(applyMatchingConfig,0));
+      e.addEventListener('blur',()=>setTimeout(applyMatchingConfig,0));
+      e.addEventListener('input',()=>setTimeout(applyMatchingConfig,0));
+    });
+
+  });
+
+
+})();
+</script>
+</body></html>
