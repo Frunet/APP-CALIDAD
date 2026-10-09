@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { palletResult, summarize, toNumber, type WeightConfig } from '../../lib/calculations'
-import { GENERAL_PHOTO_LABELS, PRODUCTS, type PhotoDraft, type Product, type ReceptionDraft } from '../../types'
+import { byCaliberName, useMasters } from '../../lib/masters'
+import { GENERAL_PHOTO_LABELS, type PhotoDraft, type ReceptionDraft } from '../../types'
 import {
   deleteReception,
   emptyDraft,
@@ -26,6 +27,7 @@ export function ReceptionEditor() {
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(0)
   const [error, setError] = useState<string | null>(null)
+  const { products, calibers, suppliers, loaded: mastersLoaded, error: mastersError } = useMasters()
 
   useEffect(() => {
     listAgreements().then(setAgreements).catch(() => setAgreements([]))
@@ -37,6 +39,16 @@ export function ReceptionEditor() {
       .then(setDraft)
       .catch(() => setError('No se pudo cargar la recepción.'))
   }, [id])
+
+  // En una recepción nueva se preselecciona el primer producto activo.
+  useEffect(() => {
+    if (!mastersLoaded) return
+    setDraft((d) => {
+      if (!d || d.product_id) return d
+      const first = products.find((p) => p.active)
+      return first ? { ...d, product_id: first.id, product: first.name } : d
+    })
+  }, [mastersLoaded, products])
 
   const cfg: WeightConfig = useMemo(
     () => ({
@@ -55,16 +67,15 @@ export function ReceptionEditor() {
 
   /** Al cambiar proveedor/producto/formato se buscan las condiciones pactadas. */
   function applyAgreement(next: ReceptionDraft) {
-    const a = findAgreement(agreements, next.supplier_name, next.product, next.format)
+    const a = findAgreement(agreements, next.supplier_id, next.product_id, next.format)
     if (!a) {
       setLoadedAgreement(null)
       setDraft(next)
       return
     }
-    setLoadedAgreement(`${a.suppliers?.name} · ${a.product}${a.format ? ' · ' + a.format : ''}`)
+    setLoadedAgreement(`${a.suppliers?.name} · ${a.products?.name}${a.format ? ' · ' + a.format : ''}`)
     setDraft({
       ...next,
-      supplier_id: a.supplier_id,
       boxes_per_pallet: String(a.boxes_per_pallet),
       min_kg_box: String(a.min_kg_box),
       tare_box: String(a.tare_box),
@@ -74,9 +85,27 @@ export function ReceptionEditor() {
     })
   }
 
-  function setHeader<K extends 'supplier_name' | 'product' | 'format'>(key: K, value: ReceptionDraft[K]) {
-    applyAgreement({ ...draft!, [key]: value, supplier_id: key === 'supplier_name' ? null : draft!.supplier_id })
+  function setProduct(productId: string) {
+    const prod = products.find((p) => p.id === productId)
+    applyAgreement({ ...draft!, product_id: productId || null, product: prod?.name ?? '', caliber_id: null, caliber: '' })
   }
+
+  function setSupplier(supplierId: string) {
+    const sup = suppliers.find((x) => x.id === supplierId)
+    applyAgreement({ ...draft!, supplier_id: supplierId || null, supplier_name: sup?.name ?? '' })
+  }
+
+  function setCaliber(caliberId: string) {
+    const cal = calibers.find((c) => c.id === caliberId)
+    setDraft({ ...draft!, caliber_id: caliberId || null, caliber: cal?.name ?? '' })
+  }
+
+  const currentProduct = products.find((p) => p.id === draft.product_id)
+  const productOptions = products.filter((p) => p.active || p.id === draft.product_id)
+  const supplierOptions = suppliers.filter((x) => x.active || x.id === draft.supplier_id)
+  const caliberOptions = calibers
+    .filter((c) => c.product_id === draft.product_id && (c.active || c.id === draft.caliber_id))
+    .sort(byCaliberName)
 
   function setPalletCount(n: number) {
     const count = Math.max(1, Math.min(60, n || 1))
@@ -93,8 +122,13 @@ export function ReceptionEditor() {
   const removePhoto = (pid: string) => set('photos', draft.photos.filter((p) => p.id !== pid))
 
   async function save(status: 'draft' | 'closed', thenReport = false) {
-    if (!draft!.supplier_name.trim()) {
-      setError('Indica el proveedor.')
+    if (!draft!.supplier_id) {
+      setError('Selecciona el proveedor.')
+      setStep(0)
+      return
+    }
+    if (!draft!.product_id) {
+      setError('Selecciona el producto.')
       setStep(0)
       return
     }
@@ -103,7 +137,9 @@ export function ReceptionEditor() {
     try {
       // Guardar sin cerrar nunca reabre una recepción ya cerrada.
       const finalStatus = draft!.status === 'closed' ? 'closed' : status
-      const savedId = await saveReception({ ...draft!, status: finalStatus })
+      // La materia seca solo aplica a los productos que la piden.
+      const lab = currentProduct?.has_dry_matter ? {} : { dry_matter: '', lab_ref: '' }
+      const savedId = await saveReception({ ...draft!, ...lab, status: finalStatus })
       navigate(thenReport ? `/receptions/${savedId}/report` : '/', { replace: true })
     } catch (e) {
       setError(`No se pudo guardar: ${(e as { message?: string }).message ?? 'error desconocido'}`)
@@ -136,35 +172,50 @@ export function ReceptionEditor() {
       {step === 0 && (
         <div className="card">
           <h2>Datos de recepción</h2>
+          {mastersError && <div className="result bad">{mastersError}</div>}
+          {mastersLoaded && !suppliers.length && (
+            <div className="result">No hay proveedores dados de alta. Un administrador debe crearlos en Maestros.</div>
+          )}
           <div className={'banner' + (loadedAgreement ? ' ok' : '')}>
             {loadedAgreement ? `✓ Condiciones cargadas: ${loadedAgreement}` : 'Sin condiciones de proveedor cargadas'}
           </div>
           <div className="grid">
             <label>
               Producto
-              <select value={draft.product} onChange={(e) => setHeader('product', e.target.value as Product)}>
-                {PRODUCTS.map((p) => (
-                  <option key={p}>{p}</option>
+              <select value={draft.product_id ?? ''} onChange={(e) => setProduct(e.target.value)}>
+                <option value="">— Selecciona —</option>
+                {productOptions.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
                 ))}
               </select>
             </label>
             <label>
               Proveedor
-              <input
-                list="suppliers-list"
-                value={draft.supplier_name}
-                onChange={(e) => setHeader('supplier_name', e.target.value)}
-                placeholder="Proveedor"
-              />
-              <datalist id="suppliers-list">
-                {[...new Set(agreements.map((a) => a.suppliers?.name).filter(Boolean))].map((n) => (
-                  <option key={n} value={n} />
+              <select value={draft.supplier_id ?? ''} onChange={(e) => setSupplier(e.target.value)}>
+                <option value="">— Selecciona —</option>
+                {supplierOptions.map((x) => (
+                  <option key={x.id} value={x.id}>
+                    {x.name}
+                  </option>
                 ))}
-              </datalist>
+              </select>
+            </label>
+            <label>
+              Calibre
+              <select value={draft.caliber_id ?? ''} onChange={(e) => setCaliber(e.target.value)} disabled={!caliberOptions.length}>
+                <option value="">{caliberOptions.length ? '— Sin calibre —' : 'Sin calibres definidos'}</option>
+                {caliberOptions.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               Formato / referencia
-              <input value={draft.format} onChange={(e) => setHeader('format', e.target.value)} placeholder="Ej. Caja 12 kg" />
+              <input value={draft.format} onChange={(e) => applyAgreement({ ...draft, format: e.target.value })} placeholder="Ej. Caja 12 kg" />
             </label>
             <label>
               Lote
@@ -350,9 +401,9 @@ export function ReceptionEditor() {
             </button>
           </div>
 
-          {draft.product === 'Aguacate' && (
+          {currentProduct?.has_dry_matter && (
             <>
-              <h3>Aguacate · materia seca laboratorio</h3>
+              <h3>Materia seca · laboratorio</h3>
               <div className="grid">
                 <label>
                   Referencia laboratorio

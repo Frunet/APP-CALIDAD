@@ -26,7 +26,7 @@ src/
   components/              Layout, PhotoPicker
   features/receptions/     editor (4 pasos), historial, informe
   features/agreements/     acuerdos por proveedor/producto/formato
-  features/admin/          gestión de usuarios (solo admin)
+  features/admin/          maestros (proveedores, productos, calibres) y usuarios (solo admin)
   lib/                     supabase, calculations (+tests), image
 supabase/migrations/       esquema SQL, RLS y storage
 ```
@@ -34,7 +34,7 @@ supabase/migrations/       esquema SQL, RLS y storage
 ## Roles
 
 - **Inspector:** crea y edita sus recepciones; ve los acuerdos.
-- **Administrador:** ve todas las recepciones, gestiona acuerdos y usuarios.
+- **Administrador:** ve todas las recepciones, gestiona los maestros (proveedores, productos, calibres), los acuerdos y los usuarios.
 
 El **primer usuario** que se crea queda como administrador (trigger `handle_new_user`); los siguientes son inspectores.
 
@@ -45,7 +45,7 @@ Recomendado: en *Authentication → Sign In / Providers* desactiva *Allow new us
 
 ## Datos
 
-Tablas: `profiles`, `suppliers`, `agreements`, `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
+Tablas: `profiles`, `suppliers`, `products`, `calibers`, `agreements`, `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
 `reception-photos` (`{reception_id}/{photo_id}.jpg`), servidas con URLs firmadas. Seguridad por filas en todas las tablas.
 
 ## Pendiente / ideas

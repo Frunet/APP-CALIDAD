@@ -1,6 +1,6 @@
 import { PHOTO_BUCKET, supabase } from '../../lib/supabase'
 import { toNumber } from '../../lib/calculations'
-import type { Agreement, PhotoKind, Product, ReceptionDraft, ReceptionSummary } from '../../types'
+import type { Agreement, PhotoKind, ReceptionDraft, ReceptionSummary } from '../../types'
 
 export function newId(): string {
   return crypto.randomUUID()
@@ -19,7 +19,10 @@ export function emptyDraft(): ReceptionDraft {
   return {
     id: null,
     received_at: localDatetimeNow(),
-    product: 'Piña',
+    product_id: null,
+    product: '',
+    caliber_id: null,
+    caliber: '',
     supplier_id: null,
     supplier_name: '',
     lot: '',
@@ -94,7 +97,10 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
   return {
     id: r.id,
     received_at: toLocalInput(r.received_at),
+    product_id: r.product_id,
     product: r.product,
+    caliber_id: r.caliber_id,
+    caliber: r.caliber,
     supplier_id: r.supplier_id,
     supplier_name: r.supplier_name,
     lot: r.lot,
@@ -132,7 +138,10 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
   const { error: e1 } = await supabase.from('receptions').upsert({
     id,
     received_at: new Date(draft.received_at).toISOString(),
+    product_id: draft.product_id,
     product: draft.product,
+    caliber_id: draft.caliber_id,
+    caliber: draft.caliber,
     supplier_id: draft.supplier_id,
     supplier_name: draft.supplier_name.trim(),
     lot: draft.lot.trim(),
@@ -148,7 +157,7 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
     firmness: draft.firmness.trim(),
     brix: toNumber(draft.brix),
     lab_ref: draft.lab_ref.trim(),
-    dry_matter: draft.product === 'Aguacate' ? toNumber(draft.dry_matter) : null,
+    dry_matter: toNumber(draft.dry_matter),
     notes: draft.notes.trim(),
     status: draft.status,
   })
@@ -220,27 +229,28 @@ export async function deleteReception(id: string): Promise<void> {
 
 export interface AgreementWithSupplier extends Agreement {
   suppliers: { name: string } | null
+  products: { name: string } | null
 }
 
 export async function listAgreements(): Promise<AgreementWithSupplier[]> {
   const { data, error } = await supabase
     .from('agreements')
-    .select('*, suppliers(name)')
+    .select('*, suppliers(name), products(name)')
     .order('created_at', { ascending: false })
   if (error) throw error
   return (data ?? []) as unknown as AgreementWithSupplier[]
 }
 
+/** Acuerdo del proveedor+producto: formato exacto, si no el genérico (sin formato). */
 export function findAgreement(
   list: AgreementWithSupplier[],
-  supplierName: string,
-  product: Product,
+  supplierId: string | null,
+  productId: string | null,
   format: string,
 ): AgreementWithSupplier | undefined {
-  const name = supplierName.trim().toLowerCase()
+  if (!supplierId || !productId) return undefined
   const fmt = format.trim().toLowerCase()
-  if (!name) return undefined
-  const candidates = list.filter((a) => a.suppliers?.name.toLowerCase() === name && a.product === product)
+  const candidates = list.filter((a) => a.supplier_id === supplierId && a.product_id === productId)
   return (
     candidates.find((a) => a.format.toLowerCase() === fmt) ??
     candidates.find((a) => !a.format) ??

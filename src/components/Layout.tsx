@@ -38,6 +38,7 @@ export function Layout() {
         </NavLink>
         <NavLink to="/receptions/new">+ Nueva</NavLink>
         <NavLink to="/agreements">Acuerdos</NavLink>
+        {isAdmin && <NavLink to="/masters">Maestros</NavLink>}
         {isAdmin && <NavLink to="/users">Usuarios</NavLink>}
       </nav>
       <main className="page">

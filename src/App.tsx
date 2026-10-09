@@ -5,6 +5,7 @@ import { HistoryPage } from './features/receptions/HistoryPage'
 import { ReceptionEditor } from './features/receptions/ReceptionEditor'
 import { ReportPage } from './features/receptions/ReportPage'
 import { AgreementsPage } from './features/agreements/AgreementsPage'
+import { MastersPage } from './features/admin/MastersPage'
 import { UsersPage } from './features/admin/UsersPage'
 
 export function App() {
@@ -17,6 +18,14 @@ export function App() {
         <Route path="receptions/:id" element={<ReceptionEditor />} />
         <Route path="receptions/:id/report" element={<ReportPage />} />
         <Route path="agreements" element={<AgreementsPage />} />
+        <Route
+          path="masters"
+          element={
+            <RequireAdmin>
+              <MastersPage />
+            </RequireAdmin>
+          }
+        />
         <Route
           path="users"
           element={

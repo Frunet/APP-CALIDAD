@@ -2,13 +2,13 @@ import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../auth/AuthContext'
 import { supabase } from '../../lib/supabase'
 import { toNumber } from '../../lib/calculations'
-import { PRODUCTS, type Product } from '../../types'
+import { useMasters } from '../../lib/masters'
 import { listAgreements, type AgreementWithSupplier } from '../receptions/api'
 
 interface Form {
   id: string | null
-  supplier: string
-  product: Product
+  supplierId: string
+  productId: string
   format: string
   boxes: string
   minKg: string
@@ -18,11 +18,12 @@ interface Form {
 }
 
 const blank: Form = {
-  id: null, supplier: '', product: 'Piña', format: '', boxes: '80', minKg: '12', tareBox: '0', tarePallet: '0', tareOther: '0',
+  id: null, supplierId: '', productId: '', format: '', boxes: '80', minKg: '12', tareBox: '0', tarePallet: '0', tareOther: '0',
 }
 
 export function AgreementsPage() {
   const { isAdmin } = useAuth()
+  const { suppliers, products } = useMasters()
   const [list, setList] = useState<AgreementWithSupplier[]>([])
   const [form, setForm] = useState<Form>(blank)
   const [error, setError] = useState<string | null>(null)
@@ -35,18 +36,12 @@ export function AgreementsPage() {
   const set = (k: keyof Form, v: string) => setForm((f) => ({ ...f, [k]: v }))
 
   async function save() {
-    const name = form.supplier.trim()
-    if (!name) return setError('Introduce el proveedor.')
+    if (!form.supplierId) return setError('Selecciona el proveedor.')
+    if (!form.productId) return setError('Selecciona el producto.')
     setError(null)
-    let { data: sup } = await supabase.from('suppliers').select('id').eq('name', name).maybeSingle()
-    if (!sup) {
-      const ins = await supabase.from('suppliers').insert({ name }).select('id').single()
-      if (ins.error) return setError(ins.error.message)
-      sup = ins.data
-    }
     const row = {
-      supplier_id: sup!.id,
-      product: form.product,
+      supplier_id: form.supplierId,
+      product_id: form.productId,
       format: form.format.trim(),
       boxes_per_pallet: Math.round(toNumber(form.boxes) ?? 0),
       min_kg_box: toNumber(form.minKg) ?? 0,
@@ -71,24 +66,36 @@ export function AgreementsPage() {
 
   function edit(a: AgreementWithSupplier) {
     setForm({
-      id: a.id, supplier: a.suppliers?.name ?? '', product: a.product, format: a.format,
+      id: a.id, supplierId: a.supplier_id, productId: a.product_id, format: a.format,
       boxes: String(a.boxes_per_pallet), minKg: String(a.min_kg_box), tareBox: String(a.tare_box),
       tarePallet: String(a.tare_pallet), tareOther: String(a.tare_other),
     })
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
+  const supplierOptions = suppliers.filter((s) => s.active || s.id === form.supplierId)
+  const productOptions = products.filter((p) => p.active || p.id === form.productId)
+
   return (
     <div>
       {isAdmin && (
         <div className="card">
           <h2>Acuerdo con proveedor</h2>
-          <p className="muted">Al iniciar una recepción con el mismo proveedor, producto y formato, estas condiciones se cargan solas.</p>
+          <p className="muted">
+            Al iniciar una recepción con el mismo proveedor, producto y formato, estas condiciones se cargan solas. Los proveedores y
+            productos se dan de alta en Maestros.
+          </p>
           <div className="grid">
-            <label>Proveedor<input value={form.supplier} onChange={(e) => set('supplier', e.target.value)} placeholder="Ej. Proveedor Tropical" /></label>
+            <label>Proveedor
+              <select value={form.supplierId} onChange={(e) => set('supplierId', e.target.value)}>
+                <option value="">— Selecciona —</option>
+                {supplierOptions.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+              </select>
+            </label>
             <label>Producto
-              <select value={form.product} onChange={(e) => set('product', e.target.value)}>
-                {PRODUCTS.map((p) => <option key={p}>{p}</option>)}
+              <select value={form.productId} onChange={(e) => set('productId', e.target.value)}>
+                <option value="">— Selecciona —</option>
+                {productOptions.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </label>
             <label>Formato / referencia<input value={form.format} onChange={(e) => set('format', e.target.value)} placeholder="Ej. Caja 12 kg" /></label>
@@ -115,7 +122,7 @@ export function AgreementsPage() {
           {list.map((a) => (
             <div className="list-item" key={a.id}>
               <div>
-                <strong>{a.suppliers?.name}</strong> · {a.product}{a.format ? ` · ${a.format}` : ''}
+                <strong>{a.suppliers?.name}</strong> · {a.products?.name}{a.format ? ` · ${a.format}` : ''}
                 <br />
                 <span className="muted">
                   {a.boxes_per_pallet} cajas/palet · mínimo {a.min_kg_box} kg/caja · tara caja {a.tare_box} kg · palet {a.tare_pallet} kg · otras {a.tare_other} kg

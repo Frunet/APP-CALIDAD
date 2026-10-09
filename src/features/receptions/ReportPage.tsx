@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { palletResult, summarize, toNumber } from '../../lib/calculations'
 import { GENERAL_PHOTO_LABELS, type ReceptionDraft } from '../../types'
+import { useMasters } from '../../lib/masters'
 import { loadReception } from './api'
 
 export function ReportPage() {
   const { id } = useParams()
   const [d, setD] = useState<ReceptionDraft | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { products } = useMasters()
 
   useEffect(() => {
     if (!id) return
@@ -28,8 +30,9 @@ export function ReportPage() {
   const summary = summarize(results)
   const dash = (v: string) => v || '—'
   const dateText = new Date(d.received_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
+  const hasDryMatter = products.find((p) => p.id === d.product_id)?.has_dry_matter ?? false
   const dryMatter =
-    d.product === 'Aguacate' ? (d.dry_matter ? `${d.dry_matter} %` : 'Pendiente laboratorio') : 'No aplica'
+    hasDryMatter ? (d.dry_matter ? `${d.dry_matter} %` : 'Pendiente laboratorio') : 'No aplica'
 
   const shareText = [
     `FrutaCheck QA - ${d.product}`,
@@ -94,7 +97,8 @@ export function ReportPage() {
           <tbody>
             <tr><th>Proveedor</th><td>{dash(d.supplier_name)}</td><th>Lote</th><td>{dash(d.lot)}</td></tr>
             <tr><th>Origen</th><td>{dash(d.origin)}</td><th>Camión</th><td>{dash(d.truck)}</td></tr>
-            <tr><th>Formato</th><td>{dash(d.format)}</td><th>Estado</th><td>{d.status === 'closed' ? 'Cerrada' : 'Borrador'}</td></tr>
+            <tr><th>Formato</th><td>{dash(d.format)}</td><th>Calibre</th><td>{dash(d.caliber)}</td></tr>
+            <tr><th>Estado</th><td colSpan={3}>{d.status === 'closed' ? 'Cerrada' : 'Borrador'}</td></tr>
           </tbody>
         </table>
 

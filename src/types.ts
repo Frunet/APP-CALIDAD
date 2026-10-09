@@ -1,5 +1,3 @@
-export const PRODUCTS = ['Piña', 'Mango', 'Aguacate'] as const
-export type Product = (typeof PRODUCTS)[number]
 export type Role = 'inspector' | 'admin'
 export type PhotoKind = 'label' | 'pallet' | 'cut' | 'defect'
 
@@ -19,12 +17,27 @@ export interface Profile {
 export interface Supplier {
   id: string
   name: string
+  active: boolean
+}
+
+export interface Product {
+  id: string
+  name: string
+  has_dry_matter: boolean
+  active: boolean
+}
+
+export interface Caliber {
+  id: string
+  product_id: string
+  name: string
+  active: boolean
 }
 
 export interface Agreement {
   id: string
   supplier_id: string
-  product: Product
+  product_id: string
   format: string
   boxes_per_pallet: number
   min_kg_box: number
@@ -36,7 +49,7 @@ export interface Agreement {
 export interface ReceptionSummary {
   id: string
   received_at: string
-  product: Product
+  product: string
   supplier_name: string
   lot: string
   status: 'draft' | 'closed'
@@ -69,7 +82,10 @@ export interface PalletDraft {
 export interface ReceptionDraft {
   id: string | null
   received_at: string // valor de <input type="datetime-local">
-  product: Product
+  product_id: string | null
+  product: string
+  caliber_id: string | null
+  caliber: string
   supplier_id: string | null
   supplier_name: string
   lot: string
