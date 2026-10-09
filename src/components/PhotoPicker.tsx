@@ -8,9 +8,10 @@ interface Props {
   photos: PhotoDraft[]
   onAdd: (photos: PhotoDraft[]) => void
   onRemove: (id: string) => void
+  onBusy?: (busy: boolean) => void
 }
 
-export function PhotoPicker({ kind, defectId = null, photos, onAdd, onRemove }: Props) {
+export function PhotoPicker({ kind, defectId = null, photos, onAdd, onRemove, onBusy }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const mine = photos.filter((p) => p.kind === kind && p.defectId === defectId)
@@ -18,6 +19,7 @@ export function PhotoPicker({ kind, defectId = null, photos, onAdd, onRemove }: 
   async function pick(files: FileList | null) {
     if (!files?.length) return
     setBusy(true)
+    onBusy?.(true)
     const added: PhotoDraft[] = []
     for (const f of Array.from(files)) {
       try {
@@ -29,6 +31,7 @@ export function PhotoPicker({ kind, defectId = null, photos, onAdd, onRemove }: 
     }
     onAdd(added)
     setBusy(false)
+    onBusy?.(false)
     if (input.current) input.current.value = ''
   }
 

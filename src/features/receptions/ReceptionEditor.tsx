@@ -24,6 +24,7 @@ export function ReceptionEditor() {
   const [agreements, setAgreements] = useState<AgreementWithSupplier[]>([])
   const [loadedAgreement, setLoadedAgreement] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [processing, setProcessing] = useState(0)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -87,7 +88,8 @@ export function ReceptionEditor() {
   const results = draft.pallets.map((p) => palletResult(p.boxes, p.gross, cfg))
   const summary = summarize(results)
 
-  const addPhotos = (added: PhotoDraft[]) => set('photos', [...draft.photos, ...added])
+  const addPhotos = (added: PhotoDraft[]) => setDraft((d) => (d ? { ...d, photos: [...d.photos, ...added] } : d))
+  const trackBusy = (b: boolean) => setProcessing((n) => n + (b ? 1 : -1))
   const removePhoto = (pid: string) => set('photos', draft.photos.filter((p) => p.id !== pid))
 
   async function save(status: 'draft' | 'closed', thenReport = false) {
@@ -339,7 +341,7 @@ export function ReceptionEditor() {
                 </label>
               </div>
               <label style={{ marginTop: 10 }}>Fotografías del defecto</label>
-              <PhotoPicker kind="defect" defectId={d.id} photos={draft.photos} onAdd={addPhotos} onRemove={removePhoto} />
+              <PhotoPicker kind="defect" defectId={d.id} photos={draft.photos} onAdd={addPhotos} onRemove={removePhoto} onBusy={trackBusy} />
             </div>
           ))}
           <div className="actions">
@@ -379,7 +381,7 @@ export function ReceptionEditor() {
             {(Object.keys(GENERAL_PHOTO_LABELS) as (keyof typeof GENERAL_PHOTO_LABELS)[]).map((k) => (
               <div className="photo-box" key={k}>
                 <b>{GENERAL_PHOTO_LABELS[k]}</b>
-                <PhotoPicker kind={k} photos={draft.photos} onAdd={addPhotos} onRemove={removePhoto} />
+                <PhotoPicker kind={k} photos={draft.photos} onAdd={addPhotos} onRemove={removePhoto} onBusy={trackBusy} />
               </div>
             ))}
           </div>
@@ -397,11 +399,11 @@ export function ReceptionEditor() {
             Siguiente →
           </button>
         )}
-        <button className="btn secondary" disabled={saving} onClick={() => save('draft')}>
-          {saving ? 'Guardando…' : 'Guardar borrador'}
+        <button className="btn secondary" disabled={saving || processing > 0} onClick={() => save('draft')}>
+          {saving ? 'Guardando…' : processing > 0 ? 'Procesando fotos…' : 'Guardar borrador'}
         </button>
         {step === STEPS.length - 1 && (
-          <button className="btn ok" disabled={saving} onClick={() => save('closed', true)}>
+          <button className="btn ok" disabled={saving || processing > 0} onClick={() => save('closed', true)}>
             Cerrar y ver informe
           </button>
         )}
