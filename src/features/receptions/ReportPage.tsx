@@ -4,16 +4,18 @@ import { palletResult, summarize, toNumber } from '../../lib/calculations'
 import { GENERAL_PHOTO_LABELS, type ReceptionDraft } from '../../types'
 import { useMasters } from '../../lib/masters'
 import { useAuth } from '../../auth/AuthContext'
-import { exportReceptionsPdf } from './pdfExport'
+import { buildPdf, downloadBlob, safeFilename } from '../../lib/pdf'
 import { loadReception } from './api'
 
 export function ReportPage() {
   const { id } = useParams()
   const [d, setD] = useState<ReceptionDraft | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const { products } = useMasters()
+  const { products, loaded: mastersLoaded } = useMasters()
   const { profile } = useAuth()
-  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfFile, setPdfFile] = useState<File | null>(null)
+  const [pdfFailed, setPdfFailed] = useState(false)
+  const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -21,6 +23,28 @@ export function ReportPage() {
       .then(setD)
       .catch(() => setError('No se pudo cargar el informe.'))
   }, [id])
+
+  // El PDF se prepara en cuanto se abre el informe: así "Compartir" lo tiene listo al instante
+  // (los navegadores móviles exigen compartir justo al pulsar el botón).
+  useEffect(() => {
+    if (!d || !mastersLoaded) return
+    let cancelled = false
+    setPdfFile(null)
+    setPdfFailed(false)
+    buildPdf(
+      [{ draft: d, inspector: d.inspector_name ?? '', hasDryMatter: products.find((p) => p.id === d.product_id)?.has_dry_matter ?? false }],
+      { title: 'Informe de control de recepción', generatedBy: profile?.full_name || 'Usuario', includePhotos: true },
+    )
+      .then((blob) => {
+        if (cancelled) return
+        const name = safeFilename(`informe-${d.supplier_name}-${d.lot || 'sin-lote'}-${d.received_at.slice(0, 10)}`) + '.pdf'
+        setPdfFile(new File([blob], name, { type: 'application/pdf' }))
+      })
+      .catch(() => !cancelled && setPdfFailed(true))
+    return () => {
+      cancelled = true
+    }
+  }, [d, mastersLoaded, products, profile?.full_name])
 
   if (!d) return <div className="card muted">{error ?? 'Cargando…'}</div>
 
@@ -46,33 +70,32 @@ export function ReportPage() {
     `Palets bajo mínimo: ${summary.belowMin}/${summary.weighed}`,
   ].join('\n')
 
-  async function downloadPdf() {
-    setPdfBusy(true)
-    try {
-      await exportReceptionsPdf({
-        ids: [d!.id!],
-        products,
-        generatedBy: profile?.full_name || 'Usuario',
-        includePhotos: true,
-        title: 'Informe de control de recepción',
-        filename: `informe-${d!.supplier_name}-${d!.lot || 'sin-lote'}-${d!.received_at.slice(0, 10)}`,
-      })
-    } catch {
-      alert('No se pudo generar el PDF.')
-    }
-    setPdfBusy(false)
+  const subject = `Informe FrutaCheck QA - ${d.supplier_name || d.product} - lote ${d.lot || 'sin lote'}`
+
+  function downloadPdf() {
+    if (pdfFile) downloadBlob(pdfFile, pdfFile.name)
   }
 
-  async function share() {
-    if (navigator.share) {
+  /** Envía el PDF como archivo adjunto mediante la hoja de compartir del dispositivo. */
+  async function sendPdf(channel: 'share' | 'email' | 'whatsapp') {
+    if (!pdfFile) return
+    setNotice(null)
+    const data = { files: [pdfFile], title: subject, text: shareText }
+    if (navigator.canShare?.(data)) {
       try {
-        await navigator.share({ title: 'FrutaCheck QA', text: shareText })
-      } catch {
-        /* cancelado */
+        await navigator.share(data)
+        if (channel !== 'share') setNotice(`En la lista elige ${channel === 'email' ? 'tu aplicación de correo' : 'WhatsApp'}; el PDF ya va adjunto.`)
+        return
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') return // el usuario canceló
       }
-    } else {
-      alert('Este navegador no permite compartir. Usa "Imprimir / PDF" y comparte el archivo.')
     }
+    // Sin soporte para compartir archivos (p. ej. algunos navegadores de escritorio):
+    // se descarga el PDF y se abre el correo / WhatsApp con el texto para que lo adjunte.
+    downloadBlob(pdfFile, pdfFile.name)
+    setNotice('Este navegador no permite adjuntar el PDF automáticamente: se ha descargado, adjúntalo al mensaje.')
+    if (channel === 'email') window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`${shareText}\n\nAdjunto el informe en PDF.`)}`
+    else if (channel === 'whatsapp') window.open(`https://wa.me/?text=${encodeURIComponent(shareText)}`, '_blank', 'noopener')
   }
 
   return (
@@ -82,24 +105,26 @@ export function ReportPage() {
           <Link className="btn secondary" to={`/receptions/${d.id}`}>
             ← Editar
           </Link>
-          <button className="btn ok" onClick={downloadPdf} disabled={pdfBusy}>
-            {pdfBusy ? 'Generando PDF…' : 'Descargar PDF'}
+          <button className="btn ok" onClick={downloadPdf} disabled={!pdfFile}>
+            {pdfFile ? 'Descargar PDF' : pdfFailed ? 'PDF no disponible' : 'Preparando PDF…'}
+          </button>
+          <button className="btn" onClick={() => sendPdf('whatsapp')} disabled={!pdfFile}>
+            Enviar por WhatsApp
+          </button>
+          <button className="btn" onClick={() => sendPdf('email')} disabled={!pdfFile}>
+            Enviar por email
+          </button>
+          <button className="btn secondary" onClick={() => sendPdf('share')} disabled={!pdfFile}>
+            Compartir…
           </button>
           <button className="btn secondary" onClick={() => window.print()}>
             Imprimir
           </button>
-          <button className="btn" onClick={share}>
-            Compartir
-          </button>
-          <a className="btn" href={`mailto:?subject=${encodeURIComponent('Informe FrutaCheck QA - ' + d.lot)}&body=${encodeURIComponent(shareText + '\n\nAdjunta el PDF generado.')}`}>
-            Email
-          </a>
-          <a className="btn" href={`https://wa.me/?text=${encodeURIComponent(shareText)}`} target="_blank" rel="noreferrer">
-            WhatsApp
-          </a>
         </div>
+        {notice && <div className="result">{notice}</div>}
+        {pdfFailed && <div className="result bad">No se pudo preparar el PDF. Recarga la página.</div>}
         <p className="muted">
-          "Descargar PDF" guarda el informe completo, con todas las fotos, en el dispositivo; después puedes compartirlo por email o WhatsApp.
+          "Enviar" abre la hoja de compartir del dispositivo con el PDF ya adjunto (informe completo con fotografías); elige WhatsApp o tu correo.
         </p>
       </div>
 
