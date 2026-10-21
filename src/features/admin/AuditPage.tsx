@@ -35,9 +35,14 @@ const FIELD_LABELS: Record<string, string> = {
   decision: 'Decisión',
   decision_note: 'Comentario de la decisión',
 }
-const HIDDEN_FIELDS = new Set(['supplier_id', 'product_id', 'caliber_id', 'inspector_id', 'decided_by', 'decided_at'])
+// campos internos o derivados (se recalculan solos): no aportan al registro
+const HIDDEN_FIELDS = new Set([
+  'supplier_id', 'product_id', 'caliber_id', 'inspector_id', 'decided_by', 'decided_at', 'breaches', 'auto_result',
+  'limit_max_temperature', 'limit_min_brix', 'limit_max_defect_pct', 'limit_min_dry_matter', 'limit_max_transport_temp',
+  'transport_min', 'transport_max', 'transport_avg',
+])
 
-const PHOTO_KINDS: Record<string, string> = { label: 'albarán', pallet: 'palet', cut: 'corte', defect: 'defecto', origin: 'palet de origen' }
+const PHOTO_KINDS: Record<string, string> = { label: 'albarán', pallet: 'palet', cut: 'corte', defect: 'defecto', origin: 'palet de origen', thermo: 'termógrafo' }
 const DECISIONS: Record<string, string> = { accepted: 'Aceptada', reserves: 'Aceptada con reservas', rejected: 'Rechazada' }
 
 function fmt(field: string, v: unknown): string {
@@ -112,6 +117,10 @@ export function describeChanges(row: AuditRow): string[] {
     )
       .map(([k, n]) => `${k} ×${n}`)
       .join(', ')
+  const thermoAdded = (c.termografos_anadidos ?? []) as string[]
+  const thermoRemoved = (c.termografos_eliminados ?? []) as string[]
+  if (thermoAdded.length) out.push(`Archivos de termógrafo añadidos: ${thermoAdded.join(', ')}`)
+  if (thermoRemoved.length) out.push(`Archivos de termógrafo eliminados: ${thermoRemoved.join(', ')}`)
   if (added.length) out.push(`Fotos añadidas: ${added.length} (${count(added)})`)
   if (removed.length) out.push(`Fotos eliminadas: ${removed.length} (${count(removed)})`)
   return out

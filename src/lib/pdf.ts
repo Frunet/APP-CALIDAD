@@ -338,6 +338,63 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
     })
     y = lastY() + 6
 
+    const thermoPhotos = d.photos.filter((p) => p.kind === 'thermo')
+    if (d.thermos.length || thermoPhotos.length) {
+      heading('Termógrafo de transporte')
+      const limitT = toNumber(d.limit_max_transport_temp)
+      for (const t of d.thermos) {
+        const sx = t.stats
+        autoTable(doc, {
+          ...tableDefaults,
+          startY: y,
+          theme: 'grid',
+          body: [
+            [{ content: 'Archivo', styles: { fontStyle: 'bold', fillColor: LIGHT, cellWidth: 28 } }, { content: t.name, colSpan: 5 }],
+            ...(sx
+              ? [
+                  ['Lecturas', String(sx.n), 'Mínima', `${sx.min.toFixed(1)} °C`, 'Máxima', `${sx.max.toFixed(1)} °C`],
+                  ['Media', `${sx.avg.toFixed(1)} °C`, 'Inicio', sx.first || '-', 'Fin', sx.last || '-'],
+                ]
+              : [[{ content: 'Archivo guardado con la recepción (sin lecturas calculadas)', colSpan: 6 }]]),
+          ],
+          didParseCell: (h) => {
+            if (sx && h.row.index === 1 && h.column.index === 5 && limitT !== null && sx.max > limitT) {
+              h.cell.styles.textColor = BAD
+              h.cell.styles.fontStyle = 'bold'
+            }
+          },
+        })
+        y = lastY() + 2
+        if (sx && sx.series.length > 1) {
+          const gh = 34
+          ensure(gh + 6)
+          const gx = MARGIN
+          const gw = CONTENT_W
+          doc.setDrawColor(200, 210, 220).setFillColor(246, 249, 252).rect(gx, y, gw, gh, 'FD')
+          const vs = limitT !== null ? [...sx.series, limitT] : sx.series
+          let lo = Math.min(...vs)
+          let hi = Math.max(...vs)
+          if (lo === hi) {
+            lo -= 1
+            hi += 1
+          }
+          const px = (i: number) => gx + 3 + (i / (sx.series.length - 1)) * (gw - 6)
+          const py = (v: number) => y + 3 + (1 - (v - lo) / (hi - lo)) * (gh - 11)
+          if (limitT !== null) {
+            doc.setDrawColor(...BAD).setLineDashPattern([2, 2], 0).line(gx + 3, py(limitT), gx + gw - 3, py(limitT))
+            doc.setLineDashPattern([], 0)
+          }
+          doc.setDrawColor(...BRAND).setLineWidth(0.4)
+          for (let i = 1; i < sx.series.length; i++) doc.line(px(i - 1), py(sx.series[i - 1]), px(i), py(sx.series[i]))
+          doc.setFont('helvetica', 'normal').setFontSize(7).setTextColor(110, 110, 110)
+          doc.text(`${lo.toFixed(1)} - ${hi.toFixed(1)} °C${limitT !== null ? `  ·  límite ${limitT} °C` : ''}`, gx + 3, y + gh - 2)
+          doc.setTextColor(0, 0, 0).setLineWidth(0.2)
+          y += gh + 4
+        }
+      }
+      if (!d.thermos.length) y += 0
+    }
+
     heading('Defectos detectados')
     const defectRows = d.defects.filter((x) => x.name || x.percent || d.photos.some((p) => p.defectId === x.id))
     if (defectRows.length) {
@@ -362,6 +419,7 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
           .filter((p) => p.defectId === x.id)
           .forEach((p, j) => wanted.push({ url: p.url, caption: `Defecto ${i + 1}: ${dash(x.name)} (${x.percent || '0'} %) · foto ${j + 1}` }))
       })
+      thermoPhotos.forEach((p, j) => wanted.push({ url: p.url, caption: `Termógrafo · foto ${j + 1}` }))
       d.pallets.forEach((_, i) => {
         d.photos
           .filter((p) => p.kind === 'origin' && p.palletIndex === i)

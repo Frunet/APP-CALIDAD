@@ -7,6 +7,9 @@ import { useAuth } from '../../auth/AuthContext'
 import { buildPdf, downloadBlob, safeFilename } from '../../lib/pdf'
 import { finalResult, RESULT_LABELS } from '../../lib/evaluation'
 import { evaluateDraft } from './evaluate'
+import { StatsTable } from './ThermoSection'
+import { Sparkline } from '../../components/charts'
+import { toNumber as toNum } from '../../lib/calculations'
 import { loadReception } from './api'
 
 export function ReportPage() {
@@ -230,6 +233,45 @@ export function ReportPage() {
             </tr>
           </tbody>
         </table>
+
+        {(d.thermos.length > 0 || d.photos.some((p) => p.kind === 'thermo')) && (
+          <>
+            <h2>Termógrafo de transporte</h2>
+            {d.thermos.map((t) => (
+              <div key={t.id} style={{ marginBottom: 10 }}>
+                <p>
+                  <b>Archivo:</b> {t.name}
+                  {t.url && (
+                    <>
+                      {' · '}
+                      <a href={t.url} target="_blank" rel="noreferrer" className="no-print">
+                        Descargar
+                      </a>
+                    </>
+                  )}
+                </p>
+                {t.stats ? (
+                  <>
+                    <StatsTable s={t.stats} />
+                    <Sparkline series={t.stats.series} limit={toNum(d.limit_max_transport_temp)} />
+                  </>
+                ) : (
+                  <p className="muted">Archivo guardado con la recepción (sin lecturas calculadas).</p>
+                )}
+              </div>
+            ))}
+            <div className="report-photos">
+              {d.photos
+                .filter((p) => p.kind === 'thermo')
+                .map((p, i) => (
+                  <div className="report-photo" key={p.id}>
+                    <b>Termógrafo · foto {i + 1}</b>
+                    <img src={p.url} alt="" />
+                  </div>
+                ))}
+            </div>
+          </>
+        )}
 
         <h2>Defectos detectados</h2>
         <table>

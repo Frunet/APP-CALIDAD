@@ -24,6 +24,9 @@ export interface RegisterReception {
   dry_matter: number | null
   notes: string
   inspector: string
+  transportMin: number | null
+  transportMax: number | null
+  transportAvg: number | null
   breaches: number
   autoResult: string | null
   decision: string | null
@@ -71,6 +74,9 @@ export async function loadRegister(ids: string[]): Promise<RegisterReception[]> 
         dry_matter: num(r.dry_matter),
         notes: r.notes,
         inspector: (r.profiles as { full_name: string } | null)?.full_name ?? '',
+        transportMin: num(r.transport_min),
+        transportMax: num(r.transport_max),
+        transportAvg: num(r.transport_avg),
         breaches: r.breaches ?? 0,
         autoResult: r.auto_result ?? null,
         decision: r.decision ?? null,

@@ -60,6 +60,14 @@ mínima y temperatura máxima de transporte. La recepción guarda los límites c
 reservas, 3 o más = rechazada. **Calidad y el administrador pueden decidir el resultado final** (con comentario); un trigger
 impide que lo haga un inspector. El informe, el PDF, el Excel y el Historial muestran el resultado final.
 
+## Termógrafo del transporte
+
+En el paso Calidad se pueden subir los archivos del termógrafo (CSV, TXT, Excel o PDF) y/o fotos. Los CSV/TXT/Excel se leen
+(`src/lib/thermo.ts`): se detectan las columnas de temperatura (se puede elegir otra) y se calculan mínima, máxima, media, nº de
+lecturas, inicio y fin, con una gráfica. **El archivo original se guarda** en el almacenamiento (también los PDF, que no se leen) y
+se puede descargar desde el informe. La máxima se compara con el límite de temperatura de transporte de la especificación y
+cuenta como un incumplimiento. Informe, PDF y Excel incluyen el transporte.
+
 ## Estadísticas
 
 Pantalla **Estadísticas** (Calidad y administrador): filtros por fechas, producto y proveedor; KPIs (recepciones, toneladas, % palets

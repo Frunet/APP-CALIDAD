@@ -1,5 +1,6 @@
 import { palletResult, toNumber } from '../../lib/calculations'
 import { evaluate, type Evaluation, type Limits } from '../../lib/evaluation'
+import { overallMax } from '../../lib/thermo'
 import type { ReceptionDraft } from '../../types'
 
 export function limitsOf(d: ReceptionDraft): Limits {
@@ -13,7 +14,11 @@ export function limitsOf(d: ReceptionDraft): Limits {
 }
 
 /** Evalúa una recepción contra los límites que lleva guardados (los de su especificación). */
-export function evaluateDraft(d: ReceptionDraft, requiresDryMatter: boolean, transportMax: number | null = null): Evaluation {
+export function evaluateDraft(
+  d: ReceptionDraft,
+  requiresDryMatter: boolean,
+  transportMax: number | null = overallMax(d.thermos.map((t) => t.stats)),
+): Evaluation {
   const cfg = {
     minKgBox: toNumber(d.min_kg_box) ?? 0,
     tareBox: toNumber(d.tare_box) ?? 0,

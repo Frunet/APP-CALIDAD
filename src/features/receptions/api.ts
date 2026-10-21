@@ -1,7 +1,8 @@
 import { PHOTO_BUCKET, supabase } from '../../lib/supabase'
 import { toNumber } from '../../lib/calculations'
 import { cacheGet, cacheSet } from '../../lib/cache'
-import type { Agreement, PhotoKind, ReceptionDraft, ReceptionSummary } from '../../types'
+import type { ThermoStats } from '../../lib/thermo'
+import type { Agreement, PhotoKind, ReceptionDraft, ReceptionSummary, ThermoDraft } from '../../types'
 
 export function newId(): string {
   return crypto.randomUUID()
@@ -53,6 +54,7 @@ export function emptyDraft(): ReceptionDraft {
     decision_note: '',
     decided_by: null,
     decided_at: null,
+    thermos: [],
     pallets: [{ boxes: '80', gross: '' }],
     defects: [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
     photos: [],
@@ -99,15 +101,16 @@ export async function signedUrls(paths: string[]): Promise<Record<string, string
 }
 
 export async function loadReception(id: string): Promise<ReceptionDraft> {
-  const [rec, pal, def, pho] = await Promise.all([
+  const [rec, pal, def, pho, thr] = await Promise.all([
     supabase.from('receptions').select('*, profiles:profiles!receptions_inspector_id_fkey(full_name)').eq('id', id).single(),
     supabase.from('pallets').select('position, boxes, gross_kg').eq('reception_id', id).order('position'),
     supabase.from('defects').select('id, name, percent, defect_type_id').eq('reception_id', id),
     supabase.from('photos').select('id, kind, defect_id, pallet_position, storage_path').eq('reception_id', id).order('created_at'),
+    supabase.from('thermographs').select('*').eq('reception_id', id).order('created_at'),
   ])
-  for (const r of [rec, pal, def, pho]) if (r.error) throw r.error
+  for (const r of [rec, pal, def, pho, thr]) if (r.error) throw r.error
   const r = rec.data!
-  const urls = await signedUrls((pho.data ?? []).map((p) => p.storage_path))
+  const urls = await signedUrls([...(pho.data ?? []).map((p) => p.storage_path), ...(thr.data ?? []).flatMap((t) => (t.storage_path ? [t.storage_path] : []))])
   const defects = (def.data ?? []).map((d) => ({ id: d.id, defectTypeId: d.defect_type_id as string | null, name: d.name, percent: s(d.percent) }))
   return {
     id: r.id,
@@ -146,6 +149,29 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
     decided_by: r.decided_by ?? null,
     decided_at: r.decided_at ?? null,
     inspector_name: (r.profiles as { full_name: string } | null)?.full_name ?? '',
+    thermos: (thr.data ?? []).map(
+      (t): ThermoDraft => ({
+        id: t.id,
+        name: t.file_name,
+        size: t.file_size ?? 0,
+        path: t.storage_path,
+        file: null,
+        url: t.storage_path ? (urls[t.storage_path] ?? '') : '',
+        columnLabel: t.column_label,
+        stats:
+          t.n_readings === null
+            ? null
+            : ({
+                n: t.n_readings,
+                min: Number(t.min_temp),
+                max: Number(t.max_temp),
+                avg: Number(t.avg_temp),
+                first: t.started_at,
+                last: t.ended_at,
+                series: (t.series ?? []) as number[],
+              } satisfies ThermoStats),
+      }),
+    ),
     pallets: (pal.data ?? []).map((p) => ({ boxes: s(p.boxes), gross: s(p.gross_kg) })),
     defects: defects.length ? defects : [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
     photos: (pho.data ?? []).map((p) => ({
@@ -157,6 +183,18 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
       file: null,
       url: urls[p.storage_path] ?? '',
     })),
+  }
+}
+
+/** Resumen del transporte para la recepción: mínima, máxima y media (ponderada) de todos los termógrafos. */
+function transportSummary(thermos: ThermoDraft[]) {
+  const stats = thermos.flatMap((t) => (t.stats ? [t.stats] : []))
+  if (!stats.length) return { transport_min: null, transport_max: null, transport_avg: null }
+  const n = stats.reduce((a, x) => a + x.n, 0)
+  return {
+    transport_min: Math.min(...stats.map((x) => x.min)),
+    transport_max: Math.max(...stats.map((x) => x.max)),
+    transport_avg: stats.reduce((a, x) => a + x.avg * x.n, 0) / n,
   }
 }
 
@@ -199,6 +237,7 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
     decision_note: draft.decision_note,
     decided_by: draft.decided_by,
     decided_at: draft.decided_at,
+    ...transportSummary(draft.thermos),
   })
   if (e1) throw e1
 
@@ -243,6 +282,40 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
   }
 
   // Fotos: borrar las quitadas, subir las nuevas.
+  // Termógrafos: borrar los quitados y subir los nuevos (el archivo original se guarda tal cual).
+  const { data: existingThermos, error: e5 } = await supabase.from('thermographs').select('id, storage_path').eq('reception_id', id)
+  if (e5) throw e5
+  const keepThermoIds = new Set(draft.thermos.map((t) => t.id))
+  const removedThermos = (existingThermos ?? []).filter((t) => !keepThermoIds.has(t.id))
+  if (removedThermos.length) {
+    const paths = removedThermos.flatMap((t) => (t.storage_path ? [t.storage_path] : []))
+    if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths)
+    const { error } = await supabase.from('thermographs').delete().in('id', removedThermos.map((t) => t.id))
+    if (error) throw error
+  }
+  for (const t of draft.thermos.filter((x) => x.file)) {
+    const ext = (t.name.split('.').pop() ?? 'bin').toLowerCase().replace(/[^a-z0-9]/g, '') || 'bin'
+    const path = `${id}/${t.id}.${ext}`
+    const up = await supabase.storage.from(PHOTO_BUCKET).upload(path, t.file!, { contentType: t.file!.type || 'application/octet-stream', upsert: true })
+    if (up.error) throw up.error
+    const { error } = await supabase.from('thermographs').upsert({
+      id: t.id,
+      reception_id: id,
+      file_name: t.name,
+      file_size: t.size,
+      storage_path: path,
+      column_label: t.columnLabel,
+      n_readings: t.stats?.n ?? null,
+      min_temp: t.stats?.min ?? null,
+      max_temp: t.stats?.max ?? null,
+      avg_temp: t.stats?.avg ?? null,
+      started_at: t.stats?.first ?? '',
+      ended_at: t.stats?.last ?? '',
+      series: t.stats?.series ?? [],
+    })
+    if (error) throw error
+  }
+
   // Se descartan las fotos de defectos eliminados y las de palets que ya no existen.
   const photos = draft.photos.filter(
     (p) =>
@@ -278,8 +351,12 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
 }
 
 export async function deleteReception(id: string): Promise<void> {
-  const { data } = await supabase.from('photos').select('storage_path').eq('reception_id', id)
-  if (data?.length) await supabase.storage.from(PHOTO_BUCKET).remove(data.map((p) => p.storage_path))
+  const [{ data }, { data: thr }] = await Promise.all([
+    supabase.from('photos').select('storage_path').eq('reception_id', id),
+    supabase.from('thermographs').select('storage_path').eq('reception_id', id),
+  ])
+  const paths = [...(data ?? []).map((p) => p.storage_path), ...(thr ?? []).flatMap((t) => (t.storage_path ? [t.storage_path] : []))]
+  if (paths.length) await supabase.storage.from(PHOTO_BUCKET).remove(paths)
   const { error } = await supabase.from('receptions').delete().eq('id', id)
   if (error) throw error
 }

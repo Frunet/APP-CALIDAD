@@ -89,3 +89,29 @@ export function LineChart({ points, unit, limit, limitLabel }: { points: Point[]
     </svg>
   )
 }
+
+/** Gráfica pequeña de una serie de lecturas (termógrafo), con línea de límite opcional. */
+export function Sparkline({ series, limit }: { series: number[]; limit?: number | null }) {
+  if (series.length < 2) return null
+  const W = 420
+  const H = 90
+  const vs = series.concat(limit != null ? [limit] : [])
+  let lo = Math.min(...vs)
+  let hi = Math.max(...vs)
+  if (lo === hi) {
+    lo -= 1
+    hi += 1
+  }
+  const y = (v: number) => 6 + (1 - (v - lo) / (hi - lo)) * (H - 24)
+  const x = (i: number) => 6 + (i / (series.length - 1)) * (W - 12)
+  return (
+    <svg className="sparkline" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Gráfica de temperaturas del transporte">
+      <rect x="0" y="0" width={W} height={H} fill="#f6f9fc" stroke="#d5e0ea" rx="6" />
+      {limit != null && <line x1="6" x2={W - 6} y1={y(limit)} y2={y(limit)} stroke="var(--bad)" strokeDasharray="5 4" />}
+      <polyline fill="none" stroke="var(--accent)" strokeWidth="1.8" points={series.map((v, i) => `${x(i)},${y(v)}`).join(' ')} />
+      <text x="8" y={H - 5} fontSize="10" fill="var(--muted)">
+        {lo.toFixed(1)} – {hi.toFixed(1)} °C{limit != null ? ` · límite ${limit} °C` : ''}
+      </text>
+    </svg>
+  )
+}

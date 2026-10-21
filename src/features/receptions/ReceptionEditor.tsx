@@ -19,6 +19,7 @@ import {
   type AgreementWithSupplier,
 } from './api'
 import { useSync } from './SyncContext'
+import { ThermoSection } from './ThermoSection'
 
 const STEPS = ['Recepción', 'Palets', 'Calidad', 'Fotos', 'Resultado'] as const
 
@@ -492,6 +493,16 @@ export function ReceptionEditor() {
               {breachNote('dryMatter')}
             </>
           )}
+          <ThermoSection
+            thermos={draft.thermos}
+            photos={draft.photos}
+            limit={draft.limit_max_transport_temp}
+            onChange={(t) => set('thermos', t)}
+            onAddPhotos={addPhotos}
+            onRemovePhoto={removePhoto}
+            onBusy={trackBusy}
+          />
+          {breachNote('transport')}
           <label style={{ marginTop: 12 }}>
             Observaciones
             <textarea value={draft.notes} onChange={(e) => set('notes', e.target.value)} placeholder="Incidencias, aspecto, daños, maduración..." />

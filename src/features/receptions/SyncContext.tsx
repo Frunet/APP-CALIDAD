@@ -78,7 +78,13 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       if (!userId) throw new Error('Sin sesión')
       // El id se fija ya: así reintentar el envío no duplica la recepción.
       const id = draft.id ?? newId()
-      const clean: ReceptionDraft = { ...draft, id, photos: draft.photos.map((p) => ({ ...p, url: '' })) }
+      const clean: ReceptionDraft = {
+        ...draft,
+        id,
+        photos: draft.photos.map((p) => ({ ...p, url: '' })),
+        // las filas leídas del archivo solo sirven para elegir columna: no hace falta guardarlas
+        thermos: draft.thermos.map((t) => ({ ...t, url: '', rows: undefined, candidates: undefined })),
+      }
       await putPending({ id, userId, draft: clean, createdAt: Date.now(), attempts: 0 })
       await refreshCount()
     },

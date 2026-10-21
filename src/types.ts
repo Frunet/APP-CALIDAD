@@ -1,4 +1,5 @@
 import type { Result } from './lib/evaluation'
+import type { Candidate, ThermoStats } from './lib/thermo'
 
 export type Role = 'inspector' | 'calidad' | 'admin'
 
@@ -7,7 +8,7 @@ export const ROLE_LABELS: Record<Role, string> = {
   calidad: 'Calidad',
   admin: 'Administrador',
 }
-export type PhotoKind = 'label' | 'pallet' | 'cut' | 'defect' | 'origin'
+export type PhotoKind = 'label' | 'pallet' | 'cut' | 'defect' | 'origin' | 'thermo'
 
 export const GENERAL_PHOTO_LABELS: Record<'label' | 'pallet' | 'cut', string> = {
   label: 'Albarán / etiqueta',
@@ -91,6 +92,24 @@ export interface PhotoDraft {
   url: string
 }
 
+/** Archivo de termógrafo en edición: ya guardado (path) o nuevo (file). */
+export interface ThermoDraft {
+  id: string
+  name: string
+  size: number
+  path: string | null
+  file: Blob | null
+  /** Enlace para descargar el archivo guardado. */
+  url: string
+  stats: ThermoStats | null
+  columnLabel: string
+  /** Solo mientras se edita un archivo nuevo: columnas candidatas y filas leídas (para cambiar de columna). */
+  candidates?: Candidate[]
+  colIndex?: number
+  rows?: string[][]
+  delimiter?: string
+}
+
 export interface DefectDraft {
   id: string
   defectTypeId: string | null
@@ -144,6 +163,7 @@ export interface ReceptionDraft {
   decided_by: string | null
   decided_at: string | null
   inspector_name?: string // solo lectura
+  thermos: ThermoDraft[]
   pallets: PalletDraft[]
   defects: DefectDraft[]
   photos: PhotoDraft[]
