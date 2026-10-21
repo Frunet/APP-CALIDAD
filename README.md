@@ -1,4 +1,4 @@
-# FrutaCheck QA
+# Quality Control
 
 Control de calidad de recepción de fruta (piña, mango, aguacate). PWA instalable en el móvil.
 

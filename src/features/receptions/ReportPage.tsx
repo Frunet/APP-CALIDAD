@@ -63,14 +63,14 @@ export function ReportPage() {
     hasDryMatter ? (d.dry_matter ? `${d.dry_matter} %` : 'Pendiente laboratorio') : 'No aplica'
 
   const shareText = [
-    `FrutaCheck QA - ${d.product}`,
+    `Quality Control - ${d.product}`,
     `Proveedor: ${dash(d.supplier_name)}`,
     `Lote: ${dash(d.lot)}`,
     `Fecha: ${dateText}`,
     `Palets bajo mínimo: ${summary.belowMin}/${summary.weighed}`,
   ].join('\n')
 
-  const subject = `Informe FrutaCheck QA - ${d.supplier_name || d.product} - lote ${d.lot || 'sin lote'}`
+  const subject = `Informe Quality Control - ${d.supplier_name || d.product} - lote ${d.lot || 'sin lote'}`
 
   function downloadPdf() {
     if (pdfFile) downloadBlob(pdfFile, pdfFile.name)
@@ -143,7 +143,7 @@ export function ReportPage() {
           <div className="report-brand">
             <img src={`${import.meta.env.BASE_URL}logo-frunet.jpg`} alt="Frunet" />
             <div>
-              <h1 style={{ margin: 0 }}>FrutaCheck QA</h1>
+              <h1 style={{ margin: 0 }}>Quality Control</h1>
               <div className="report-subtitle">Informe de control de recepción</div>
             </div>
           </div>

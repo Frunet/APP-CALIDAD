@@ -116,7 +116,7 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
     doc.setFillColor(...YELLOW).rect(0, 30, PAGE_W, 1.2, 'F')
     const textX = logo ? MARGIN + 46 : MARGIN
     if (logo) doc.addImage(logo.data, 'JPEG', MARGIN, 4, 22 * (logo.w / logo.h), 22)
-    doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(20).text('FrutaCheck QA', textX, 14)
+    doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(20).text('Quality Control', textX, 14)
     doc.setFont('helvetica', 'normal').setFontSize(11).text(opts.title, textX, 23)
     doc.setTextColor(0, 0, 0)
     y = 38
@@ -197,7 +197,7 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
     const headX = logo ? MARGIN + 36 : MARGIN
     if (logo) doc.addImage(logo.data, 'JPEG', MARGIN, 3, 16 * (logo.w / logo.h), 16)
     doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(15)
-    doc.text('FrutaCheck QA', headX, 10)
+    doc.text('Quality Control', headX, 10)
     doc.setFont('helvetica', 'normal').setFontSize(10)
     doc.text('Informe de control de recepción', headX, 17)
     doc.text(`${dash(d.product)}${d.caliber ? ' · Calibre ' + d.caliber : ''}`, PAGE_W - MARGIN, 10, { align: 'right' })
@@ -365,10 +365,10 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
   for (let i = 1; i <= pages; i++) {
     doc.setPage(i)
     doc.setFont('helvetica', 'normal').setFontSize(8).setTextColor(130, 130, 130)
-    doc.text('FrutaCheck QA', MARGIN, PAGE_H - 7)
+    doc.text('Quality Control', MARGIN, PAGE_H - 7)
     doc.text(`Página ${i} de ${pages}`, PAGE_W - MARGIN, PAGE_H - 7, { align: 'right' })
   }
-  doc.setProperties({ title: opts.title, author: opts.generatedBy, creator: 'FrutaCheck QA' })
+  doc.setProperties({ title: opts.title, author: opts.generatedBy, creator: 'Quality Control' })
   return doc.output('blob')
 }
 

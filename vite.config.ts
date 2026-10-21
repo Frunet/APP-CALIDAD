@@ -9,8 +9,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icon.svg', 'logo-frunet.jpg'],
       manifest: {
-        name: 'FrutaCheck QA',
-        short_name: 'FrutaCheck',
+        name: 'Quality Control',
+        short_name: 'Quality Control',
         description: 'Control de calidad de recepción de fruta',
         lang: 'es',
         theme_color: '#173f5f',
