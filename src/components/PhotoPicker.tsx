@@ -13,7 +13,8 @@ interface Props {
 }
 
 export function PhotoPicker({ kind, defectId = null, palletIndex = null, photos, onAdd, onRemove, onBusy }: Props) {
-  const input = useRef<HTMLInputElement>(null)
+  const camera = useRef<HTMLInputElement>(null)
+  const gallery = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const mine = photos.filter((p) => p.kind === kind && p.defectId === defectId && p.palletIndex === palletIndex)
 
@@ -33,19 +34,23 @@ export function PhotoPicker({ kind, defectId = null, palletIndex = null, photos,
     onAdd(added)
     setBusy(false)
     onBusy?.(false)
-    if (input.current) input.current.value = ''
+    if (camera.current) camera.current.value = ''
+    if (gallery.current) gallery.current.value = ''
   }
 
   return (
     <div>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        multiple
-        onChange={(e) => pick(e.target.files)}
-      />
+      <div className="photo-actions">
+        <button type="button" className="btn secondary" disabled={busy} onClick={() => camera.current?.click()}>
+          📷 Hacer foto
+        </button>
+        <button type="button" className="btn secondary" disabled={busy} onClick={() => gallery.current?.click()}>
+          🖼️ Elegir del dispositivo
+        </button>
+      </div>
+      {/* Cámara: abre directamente la cámara trasera. Galería: elegir una o varias fotos ya hechas. */}
+      <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => pick(e.target.files)} />
+      <input ref={gallery} type="file" accept="image/*" multiple hidden onChange={(e) => pick(e.target.files)} />
       <div className="thumb-grid">
         {mine.map((p) => (
           <div key={p.id} className="thumb-wrap">
