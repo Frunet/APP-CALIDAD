@@ -66,6 +66,15 @@ textarea{min-height:90px}
 .checks{margin:6px 0}.check-row{display:grid;grid-template-columns:22px 110px 1fr;gap:6px;padding:7px 4px;border-bottom:1px solid var(--line);font-size:14px;align-items:baseline}
 .check-row.ok .check-icon{color:var(--ok)}.check-row.breach{color:var(--bad);font-weight:700}.check-row.na{color:var(--muted)}
 .badge.res-accepted{background:#e8f5e9;color:var(--ok)}.badge.res-reserves{background:#fff4d6;color:#8a6100}.badge.res-rejected{background:#fdecec;color:var(--bad)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px;display:flex;flex-direction:column;gap:2px;box-shadow:0 2px 7px #0000000a}
+.kpi strong{font-size:24px}.kpi.good strong{color:var(--ok)}.kpi.warn strong{color:#8a6100}.kpi.bad strong{color:var(--bad)}
+.table-wrap{overflow-x:auto}table.rank{width:100%;border-collapse:collapse;font-size:13px}table.rank th,table.rank td{border-bottom:1px solid var(--line);padding:7px 8px;text-align:left;white-space:nowrap}
+table.rank th{background:#eaf3fa;color:var(--brand)}table.rank td.good{color:var(--ok);font-weight:700}table.rank td.bad{color:var(--bad);font-weight:700}
+.hbars{display:flex;flex-direction:column;gap:8px;margin-top:8px}.hbar-row{display:grid;grid-template-columns:minmax(90px,170px) 1fr minmax(90px,auto);gap:10px;align-items:center;font-size:13px}
+.hbar-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}.hbar-track{background:#eef2f6;border-radius:6px;height:16px;overflow:hidden}.hbar-fill{height:100%;border-radius:6px}.hbar-value{text-align:right}
+.linechart{width:100%;height:auto;max-height:260px}
+@media(max-width:700px){.hbar-row{grid-template-columns:1fr;gap:3px}.hbar-value{text-align:left}}
 @media(max-width:700px){.grid,.photo-grid,.report-photos{grid-template-columns:1fr}.pgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.report{padding:12px}}
 @media print{
   body{background:#fff}

@@ -60,6 +60,13 @@ mínima y temperatura máxima de transporte. La recepción guarda los límites c
 reservas, 3 o más = rechazada. **Calidad y el administrador pueden decidir el resultado final** (con comentario); un trigger
 impide que lo haga un inspector. El informe, el PDF, el Excel y el Historial muestran el resultado final.
 
+## Estadísticas
+
+Pantalla **Estadísticas** (Calidad y administrador): filtros por fechas, producto y proveedor; KPIs (recepciones, toneladas, % palets
+bajo mínimo, % aceptadas/con reservas/rechazadas), ranking de proveedores, palets bajo mínimo por proveedor, defectos más frecuentes
+y evolución del °Brix y de la temperatura. Las gráficas son SVG/CSS propios (sin librerías). Los cálculos están en
+`src/lib/stats.ts` con tests.
+
 ## Registro de cambios
 
 Triggers de base de datos anotan en `audit_log` quién creó, modificó o eliminó cada recepción (campos, pesos de palets,

@@ -44,6 +44,7 @@ export function Layout() {
             Historial
           </NavLink>
         )}
+        {canReview && <NavLink to="/stats">Estadísticas</NavLink>}
         {isAdmin && <NavLink to="/masters">Maestros</NavLink>}
       </nav>
       {(!online || pending > 0 || justSent > 0) && (

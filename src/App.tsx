@@ -7,6 +7,7 @@ import { ReportPage } from './features/receptions/ReportPage'
 import { SavedPage } from './features/receptions/SavedPage'
 import { AgreementsPage } from './features/agreements/AgreementsPage'
 import { MastersPage } from './features/admin/MastersPage'
+import { StatsPage } from './features/stats/StatsPage'
 
 export function App() {
   return (
@@ -40,6 +41,14 @@ export function App() {
           }
         />
         <Route path="specifications" element={<AgreementsPage />} />
+        <Route
+          path="stats"
+          element={
+            <RequireReviewer>
+              <StatsPage />
+            </RequireReviewer>
+          }
+        />
         <Route
           path="masters"
           element={
