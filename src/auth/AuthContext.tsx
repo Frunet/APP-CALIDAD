@@ -1,7 +1,29 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
+import { cacheGet, cacheSet } from '../lib/cache'
+import { isNetworkError } from '../lib/network'
 import { supabase } from '../lib/supabase'
 import type { Profile } from '../types'
+
+/**
+ * Sin conexión, supabase-js no puede renovar un token caducado y getSession() devuelve null.
+ * Para poder seguir trabajando (las recepciones se encolan en el dispositivo) se lee la sesión
+ * guardada tal cual; solo se usa para la interfaz: los datos siguen protegidos por el servidor.
+ */
+function storedSession(): Session | null {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i)
+      if (k && k.startsWith('sb-') && k.endsWith('-auth-token')) {
+        const s = JSON.parse(localStorage.getItem(k) ?? 'null')
+        if (s?.user?.id) return s as Session
+      }
+    }
+  } catch {
+    /* ignorar */
+  }
+  return null
+}
 
 interface AuthState {
   session: Session | null
@@ -22,11 +44,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      setSession(data.session)
-      if (!data.session) setLoading(false)
-    })
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
+    const applySession = (s: Session | null) => {
+      const effective = s ?? (navigator.onLine ? null : storedSession())
+      setSession(effective)
+      if (!effective) setLoading(false)
+    }
+    supabase.auth
+      .getSession()
+      .then(({ data }) => applySession(data.session))
+      .catch(() => applySession(null))
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
+      // Un fallo de renovación sin conexión no debe cerrar la sesión en pantalla.
+      if (!s && event !== 'SIGNED_OUT' && !navigator.onLine) return
       setSession(s)
       if (!s) {
         setProfile(null)
@@ -45,9 +74,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       .select('id, full_name, role, active')
       .eq('id', userId)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (cancelled) return
-        setProfile((data as Profile | null) ?? null)
+        if (data) {
+          cacheSet(`profile.${userId}`, data)
+          setProfile(data as Profile)
+        } else {
+          // Sin conexión se usa el perfil guardado la última vez.
+          setProfile(error && isNetworkError(error) ? cacheGet<Profile>(`profile.${userId}`) : null)
+        }
         setLoading(false)
       })
     return () => {

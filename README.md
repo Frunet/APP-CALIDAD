@@ -52,9 +52,18 @@ Recomendado: en *Authentication → Sign In / Providers* desactiva *Allow new us
 Tablas: `profiles`, `suppliers`, `products`, `calibers`, `defect_types`, `agreements` (especificaciones), `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
 `reception-photos` (`{reception_id}/{photo_id}.jpg`), servidas con URLs firmadas. Seguridad por filas en todas las tablas.
 
+## Trabajo sin conexión
+
+- La app (PWA) se precarga en el dispositivo y abre sin red; proveedores, productos, calibres, defectos y especificaciones se copian
+  en el dispositivo en cada carga.
+- Si no hay conexión al guardar una recepción, se guarda en **IndexedDB** (con las fotos) y se envía sola al volver la red
+  (evento `online`, al volver a la app, cada 30 s o con "Enviar ahora"). El id se fija al encolar, así que reintentar es
+  idempotente (no duplica recepciones, palets ni fotos aunque el envío se corte a medias).
+- Cada elemento de la cola solo se envía con la sesión del usuario que lo creó.
+- Limitación: sin red no se pueden ver ni modificar recepciones ya guardadas (Historial, informes).
+
 ## Pendiente / ideas
 
-- Cola sin conexión para guardar recepciones sin cobertura (hoy la PWA cachea la app, pero guardar requiere red).
 - PDF generado en servidor (hoy se genera en el navegador con jsPDF; tarda más con muchas fotos).
 - El Excel y el PDF se generan en el navegador; con miles de recepciones convendría hacerlo en servidor.
 - Importar especificaciones/recepciones del `localStorage` de la v1.6.

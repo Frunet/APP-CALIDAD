@@ -1,9 +1,11 @@
 import { NavLink, Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { useSync } from '../features/receptions/SyncContext'
 import { ROLE_LABELS } from '../types'
 
 export function Layout() {
   const { session, profile, loading, isAdmin, canReview, signOut } = useAuth()
+  const { online, pending, justSent, syncing, lastError, flush } = useSync()
 
   if (loading) return <div className="center muted">Cargando…</div>
   if (!session) return <Navigate to="/login" replace />
@@ -44,6 +46,23 @@ export function Layout() {
         )}
         {isAdmin && <NavLink to="/masters">Maestros</NavLink>}
       </nav>
+      {(!online || pending > 0 || justSent > 0) && (
+        <div className={'sync-bar no-print' + (!online ? ' offline' : pending > 0 ? ' pending' : ' sent')}>
+          {!online && <span>Sin conexión · las recepciones se guardan en el dispositivo</span>}
+          {online && pending > 0 && (
+            <span>
+              {syncing ? 'Enviando…' : `${pending} recepción${pending === 1 ? '' : 'es'} pendiente${pending === 1 ? '' : 's'} de enviar`}
+              {lastError ? ` · error: ${lastError}` : ''}
+            </span>
+          )}
+          {online && pending === 0 && justSent > 0 && <span>✓ {justSent} recepción{justSent === 1 ? '' : 'es'} enviada{justSent === 1 ? '' : 's'}</span>}
+          {!!pending && (
+            <button className="btn secondary" onClick={() => void flush()} disabled={!online || syncing}>
+              Enviar ahora
+            </button>
+          )}
+        </div>
+      )}
       <main className="page">
         <Outlet />
       </main>

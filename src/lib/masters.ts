@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { cacheGet, cacheSet } from './cache'
 import { supabase } from './supabase'
 import type { Caliber, DefectType, Product, Supplier } from '../types'
 
@@ -19,12 +20,14 @@ export async function loadMasters(): Promise<Masters> {
     supabase.from('defect_types').select('id, name, active').order('name'),
   ])
   for (const r of [p, c, s, d]) if (r.error) throw r.error
-  return {
+  const masters: Masters = {
     products: (p.data ?? []) as Product[],
     calibers: (c.data ?? []) as Caliber[],
     suppliers: (s.data ?? []) as Supplier[],
     defectTypes: (d.data ?? []) as DefectType[],
   }
+  cacheSet('masters', masters)
+  return masters
 }
 
 /** Carga los maestros (proveedores, productos y calibres) y permite refrescarlos. */
@@ -40,7 +43,15 @@ export function useMasters() {
         setError(null)
         setLoaded(true)
       })
-      .catch(() => setError('No se pudieron cargar los maestros.'))
+      .catch(() => {
+        // Sin conexión se usa la copia de la última vez que se cargaron.
+        const cached = cacheGet<Masters>('masters')
+        if (cached) {
+          setMasters(cached)
+          setError(null)
+          setLoaded(true)
+        } else setError('No se pudieron cargar los maestros.')
+      })
   }, [])
 
   useEffect(refresh, [refresh])

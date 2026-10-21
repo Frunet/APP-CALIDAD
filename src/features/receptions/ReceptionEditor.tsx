@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
+import { isNetworkError } from '../../lib/network'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { palletResult, summarize, toNumber, type WeightConfig } from '../../lib/calculations'
 import { byCaliberName, useMasters } from '../../lib/masters'
@@ -15,6 +16,7 @@ import {
   saveReception,
   type AgreementWithSupplier,
 } from './api'
+import { useSync } from './SyncContext'
 
 const STEPS = ['Recepción', 'Palets', 'Calidad', 'Fotos'] as const
 
@@ -22,6 +24,7 @@ export function ReceptionEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { canReview } = useAuth()
+  const { enqueue } = useSync()
   const [draft, setDraft] = useState<ReceptionDraft | null>(id ? null : emptyDraft())
   const [step, setStep] = useState(0)
   const [agreements, setAgreements] = useState<AgreementWithSupplier[]>([])
@@ -142,9 +145,24 @@ export function ReceptionEditor() {
       const finalStatus = draft!.status === 'closed' ? 'closed' : status
       // La materia seca solo aplica a los productos que la piden.
       const lab = currentProduct?.has_dry_matter ? {} : { dry_matter: '', lab_ref: '' }
-      const savedId = await saveReception({ ...draft!, ...lab, status: finalStatus })
-      if (!canReview) navigate('/saved', { replace: true })
-      else navigate(thenReport ? `/receptions/${savedId}/report` : '/', { replace: true })
+      const toSave = { ...draft!, ...lab, status: finalStatus, id: draft!.id ?? newId() }
+
+      // Sin conexión: se guarda en el dispositivo y se envía solo al volver la red.
+      if (!navigator.onLine) {
+        await enqueue(toSave)
+        navigate('/saved', { replace: true, state: { queued: true } })
+        return
+      }
+      try {
+        const savedId = await saveReception(toSave)
+        if (!canReview) navigate('/saved', { replace: true })
+        else navigate(thenReport ? `/receptions/${savedId}/report` : '/', { replace: true })
+      } catch (e) {
+        if (!isNetworkError(e)) throw e
+        // Se perdió la conexión a mitad de guardado: se reintenta desde el principio (es idempotente).
+        await enqueue(toSave)
+        navigate('/saved', { replace: true, state: { queued: true } })
+      }
     } catch (e) {
       setError(`No se pudo guardar: ${(e as { message?: string }).message ?? 'error desconocido'}`)
       setSaving(false)

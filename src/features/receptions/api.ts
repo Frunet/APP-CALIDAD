@@ -1,5 +1,6 @@
 import { PHOTO_BUCKET, supabase } from '../../lib/supabase'
 import { toNumber } from '../../lib/calculations'
+import { cacheGet, cacheSet } from '../../lib/cache'
 import type { Agreement, PhotoKind, ReceptionDraft, ReceptionSummary } from '../../types'
 
 export function newId(): string {
@@ -257,8 +258,15 @@ export async function listAgreements(): Promise<AgreementWithSupplier[]> {
     .from('agreements')
     .select('*, suppliers(name), products(name)')
     .order('created_at', { ascending: false })
-  if (error) throw error
-  return (data ?? []) as unknown as AgreementWithSupplier[]
+  if (error) {
+    // Sin conexión se usa la copia de la última vez.
+    const cached = cacheGet<AgreementWithSupplier[]>('agreements')
+    if (cached) return cached
+    throw error
+  }
+  const list = (data ?? []) as unknown as AgreementWithSupplier[]
+  cacheSet('agreements', list)
+  return list
 }
 
 /** Especificación del proveedor+producto: formato exacto, si no el genérico (sin formato). */

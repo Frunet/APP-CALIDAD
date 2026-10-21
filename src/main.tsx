@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { registerSW } from 'virtual:pwa-register'
 import { App } from './App'
 import { AuthProvider } from './auth/AuthContext'
+import { SyncProvider } from './features/receptions/SyncContext'
 import './styles.css'
 
 registerSW({ immediate: true })
@@ -12,7 +13,9 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '')}>
       <AuthProvider>
-        <App />
+        <SyncProvider>
+          <App />
+        </SyncProvider>
       </AuthProvider>
     </BrowserRouter>
   </StrictMode>,
