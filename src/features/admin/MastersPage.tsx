@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { byCaliberName, useMasters } from '../../lib/masters'
+import { AuditPage } from './AuditPage'
 import { UsersPage } from './UsersPage'
 
-type Tab = 'suppliers' | 'products' | 'calibers' | 'defects' | 'users'
+type Tab = 'suppliers' | 'products' | 'calibers' | 'defects' | 'users' | 'audit'
 type Table = 'suppliers' | 'products' | 'calibers' | 'defect_types'
 
 const TABS: { id: Tab; label: string }[] = [
@@ -12,6 +13,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'calibers', label: 'Calibres' },
   { id: 'defects', label: 'Defectos' },
   { id: 'users', label: 'Usuarios' },
+  { id: 'audit', label: 'Registro' },
 ]
 
 function explain(err: { code?: string; message: string }): string {
@@ -92,9 +94,10 @@ export function MastersPage() {
       </div>
 
       {tab === 'users' && <UsersPage />}
+      {tab === 'audit' && <AuditPage />}
 
-      {tab !== 'users' && (error || loadError) && <div className="result bad">{error ?? loadError}</div>}
-      {tab !== 'users' && !loaded && !loadError && <p className="muted">Cargando…</p>}
+      {tab !== 'users' && tab !== 'audit' && (error || loadError) && <div className="result bad">{error ?? loadError}</div>}
+      {tab !== 'users' && tab !== 'audit' && !loaded && !loadError && <p className="muted">Cargando…</p>}
 
       {tab === 'suppliers' && (
         <div className="card">

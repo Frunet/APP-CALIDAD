@@ -52,6 +52,12 @@ Recomendado: en *Authentication → Sign In / Providers* desactiva *Allow new us
 Tablas: `profiles`, `suppliers`, `products`, `calibers`, `defect_types`, `agreements` (especificaciones), `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
 `reception-photos` (`{reception_id}/{photo_id}.jpg`), servidas con URLs firmadas. Seguridad por filas en todas las tablas.
 
+## Registro de cambios
+
+Triggers de base de datos anotan en `audit_log` quién creó, modificó o eliminó cada recepción (campos, pesos de palets,
+defectos y fotos). Los guardados seguidos se agrupan y los guardados sin cambios reales no aparecen. Solo lo ve el
+administrador (Maestros → Registro) y no se puede escribir desde la app.
+
 ## Trabajo sin conexión
 
 - La app (PWA) se precarga en el dispositivo y abre sin red; proveedores, productos, calibres, defectos y especificaciones se copian
