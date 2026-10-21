@@ -52,6 +52,14 @@ Recomendado: en *Authentication → Sign In / Providers* desactiva *Allow new us
 Tablas: `profiles`, `suppliers`, `products`, `calibers`, `defect_types`, `agreements` (especificaciones), `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
 `reception-photos` (`{reception_id}/{photo_id}.jpg`), servidas con URLs firmadas. Seguridad por filas en todas las tablas.
 
+## Límites de calidad y resultado
+
+Cada especificación puede definir límites opcionales: temperatura máxima, °Brix mínimo, defectos máximos (% total), materia seca
+mínima y temperatura máxima de transporte. La recepción guarda los límites con que se evaluó y avisa en rojo al incumplirlos
+(más el peso mínimo por palet, que se vigila siempre). Propuesta automática: 0 incumplimientos = aceptada, 1-2 = aceptada con
+reservas, 3 o más = rechazada. **Calidad y el administrador pueden decidir el resultado final** (con comentario); un trigger
+impide que lo haga un inspector. El informe, el PDF, el Excel y el Historial muestran el resultado final.
+
 ## Registro de cambios
 
 Triggers de base de datos anotan en `audit_log` quién creó, modificó o eliminó cada recepción (campos, pesos de palets,

@@ -42,6 +42,17 @@ export function emptyDraft(): ReceptionDraft {
     dry_matter: '',
     notes: '',
     status: 'draft',
+    limit_max_temperature: '',
+    limit_min_brix: '',
+    limit_max_defect_pct: '',
+    limit_min_dry_matter: '',
+    limit_max_transport_temp: '',
+    breaches: 0,
+    auto_result: null,
+    decision: null,
+    decision_note: '',
+    decided_by: null,
+    decided_at: null,
     pallets: [{ boxes: '80', gross: '' }],
     defects: [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
     photos: [],
@@ -56,18 +67,21 @@ export interface HistoryFilters {
   inspectorId: string
   from: string // YYYY-MM-DD
   to: string // YYYY-MM-DD
+  result: '' | 'accepted' | 'reserves' | 'rejected'
 }
 
 export async function listReceptions(f: HistoryFilters): Promise<ReceptionSummary[]> {
   let q = supabase
     .from('receptions')
-    .select('id, received_at, product, supplier_name, lot, status, inspector_id, profiles(full_name)')
+    .select('id, received_at, product, supplier_name, lot, status, inspector_id, breaches, auto_result, decision, profiles:profiles!receptions_inspector_id_fkey(full_name)')
     .order('received_at', { ascending: false })
     .limit(300)
   const term = f.search.trim().replace(/[%,()]/g, ' ')
   if (term) q = q.or(`supplier_name.ilike.%${term}%,lot.ilike.%${term}%`)
   if (f.status) q = q.eq('status', f.status)
   if (f.inspectorId) q = q.eq('inspector_id', f.inspectorId)
+  // resultado final = decisión de Calidad si existe; si no, la propuesta automática
+  if (f.result) q = q.or(`decision.eq.${f.result},and(decision.is.null,auto_result.eq.${f.result})`)
   if (f.from) q = q.gte('received_at', new Date(`${f.from}T00:00:00`).toISOString())
   if (f.to) q = q.lte('received_at', new Date(`${f.to}T23:59:59`).toISOString())
   const { data, error } = await q
@@ -86,7 +100,7 @@ export async function signedUrls(paths: string[]): Promise<Record<string, string
 
 export async function loadReception(id: string): Promise<ReceptionDraft> {
   const [rec, pal, def, pho] = await Promise.all([
-    supabase.from('receptions').select('*, profiles(full_name)').eq('id', id).single(),
+    supabase.from('receptions').select('*, profiles:profiles!receptions_inspector_id_fkey(full_name)').eq('id', id).single(),
     supabase.from('pallets').select('position, boxes, gross_kg').eq('reception_id', id).order('position'),
     supabase.from('defects').select('id, name, percent, defect_type_id').eq('reception_id', id),
     supabase.from('photos').select('id, kind, defect_id, pallet_position, storage_path').eq('reception_id', id).order('created_at'),
@@ -120,6 +134,17 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
     dry_matter: s(r.dry_matter),
     notes: r.notes,
     status: r.status,
+    limit_max_temperature: s(r.limit_max_temperature),
+    limit_min_brix: s(r.limit_min_brix),
+    limit_max_defect_pct: s(r.limit_max_defect_pct),
+    limit_min_dry_matter: s(r.limit_min_dry_matter),
+    limit_max_transport_temp: s(r.limit_max_transport_temp),
+    breaches: r.breaches ?? 0,
+    auto_result: r.auto_result ?? null,
+    decision: r.decision ?? null,
+    decision_note: r.decision_note ?? '',
+    decided_by: r.decided_by ?? null,
+    decided_at: r.decided_at ?? null,
     inspector_name: (r.profiles as { full_name: string } | null)?.full_name ?? '',
     pallets: (pal.data ?? []).map((p) => ({ boxes: s(p.boxes), gross: s(p.gross_kg) })),
     defects: defects.length ? defects : [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
@@ -163,6 +188,17 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
     dry_matter: toNumber(draft.dry_matter),
     notes: draft.notes.trim(),
     status: draft.status,
+    limit_max_temperature: toNumber(draft.limit_max_temperature),
+    limit_min_brix: toNumber(draft.limit_min_brix),
+    limit_max_defect_pct: toNumber(draft.limit_max_defect_pct),
+    limit_min_dry_matter: toNumber(draft.limit_min_dry_matter),
+    limit_max_transport_temp: toNumber(draft.limit_max_transport_temp),
+    breaches: draft.breaches,
+    auto_result: draft.auto_result,
+    decision: draft.decision,
+    decision_note: draft.decision_note,
+    decided_by: draft.decided_by,
+    decided_at: draft.decided_at,
   })
   if (e1) throw e1
 

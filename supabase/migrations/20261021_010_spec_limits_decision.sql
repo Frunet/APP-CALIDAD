@@ -5,7 +5,8 @@ alter table public.agreements
   add column max_temperature numeric(5,1) check (max_temperature is null or max_temperature >= -30),
   add column min_brix numeric(5,1) check (min_brix is null or min_brix >= 0),
   add column max_defect_pct numeric(5,2) check (max_defect_pct is null or (max_defect_pct >= 0 and max_defect_pct <= 100)),
-  add column min_dry_matter numeric(5,1) check (min_dry_matter is null or min_dry_matter >= 0);
+  add column min_dry_matter numeric(5,1) check (min_dry_matter is null or min_dry_matter >= 0),
+  add column max_transport_temp numeric(5,1) check (max_transport_temp is null or max_transport_temp >= -30);
 
 -- La recepción guarda los límites con que se evaluó (si la especificación cambia luego, no cambia el pasado),
 -- el resultado propuesto por las reglas y la decisión final.
@@ -14,6 +15,7 @@ alter table public.receptions
   add column limit_min_brix numeric(5,1),
   add column limit_max_defect_pct numeric(5,2),
   add column limit_min_dry_matter numeric(5,1),
+  add column limit_max_transport_temp numeric(5,1),
   add column breaches integer not null default 0,
   add column auto_result text check (auto_result in ('accepted', 'reserves', 'rejected')),
   add column decision text check (decision in ('accepted', 'reserves', 'rejected')),

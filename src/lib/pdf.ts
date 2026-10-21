@@ -1,4 +1,6 @@
 import { palletResult, summarize, toNumber } from './calculations'
+import { finalResult, RESULT_LABELS, type Result } from './evaluation'
+import { evaluateDraft } from '../features/receptions/evaluate'
 import { GENERAL_PHOTO_LABELS, type ReceptionDraft } from '../types'
 
 export interface PdfReception {
@@ -20,6 +22,9 @@ const BRAND: [number, number, number] = [18, 61, 90]
 const YELLOW: [number, number, number] = [244, 197, 66]
 const LIGHT: [number, number, number] = [238, 242, 246]
 const BAD: [number, number, number] = [180, 35, 24]
+const GOOD: [number, number, number] = [22, 131, 75]
+const WARN: [number, number, number] = [138, 97, 0]
+const RESULT_COLORS: Record<Result, [number, number, number]> = { accepted: GOOD, reserves: WARN, rejected: BAD }
 const MARGIN = 14
 const PAGE_W = 210
 const PAGE_H = 297
@@ -228,6 +233,47 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
         `Tara total del palet = cajas x tara/caja + tara palet + otras taras.`,
       8,
     )
+
+    const evaluation = evaluateDraft(d, hasDryMatter)
+    const result = finalResult(d.decision, evaluation.suggestion)
+
+    heading('Resultado')
+    autoTable(doc, {
+      ...tableDefaults,
+      startY: y,
+      theme: 'grid',
+      body: [
+        [
+          { content: 'Resultado final', styles: { fontStyle: 'bold', fillColor: LIGHT, cellWidth: 38 } },
+          {
+            content: `${RESULT_LABELS[result]}  (${d.decision ? 'decisión de Calidad' : 'propuesta automática'})`,
+            styles: { fontStyle: 'bold', textColor: RESULT_COLORS[result] },
+          },
+        ],
+        ...(d.decision && d.decision !== evaluation.suggestion
+          ? [[{ content: 'Propuesta de las reglas', styles: { fontStyle: 'bold' as const, fillColor: LIGHT } }, RESULT_LABELS[evaluation.suggestion]]]
+          : []),
+        ...(d.decision_note
+          ? [[{ content: 'Comentario', styles: { fontStyle: 'bold' as const, fillColor: LIGHT } }, d.decision_note]]
+          : []),
+      ],
+    })
+    autoTable(doc, {
+      ...tableDefaults,
+      startY: lastY() + 2,
+      theme: 'grid',
+      headStyles: { fillColor: BRAND },
+      head: [['Control', 'Estado', 'Detalle']],
+      body: evaluation.checks.map((c) => [c.label, c.status === 'ok' ? 'OK' : c.status === 'breach' ? 'INCUMPLE' : 'Sin dato', c.detail]),
+      columnStyles: { 0: { cellWidth: 32 }, 1: { cellWidth: 26 } },
+      didParseCell: (h) => {
+        if (h.section === 'body' && h.column.index === 1) {
+          h.cell.styles.fontStyle = 'bold'
+          h.cell.styles.textColor = h.cell.raw === 'INCUMPLE' ? BAD : h.cell.raw === 'OK' ? GOOD : [110, 110, 110]
+        }
+      },
+    })
+    y = lastY() + 6
 
     const cfg = {
       minKgBox: toNumber(d.min_kg_box) ?? 0,

@@ -5,6 +5,8 @@ import { GENERAL_PHOTO_LABELS, type ReceptionDraft } from '../../types'
 import { useMasters } from '../../lib/masters'
 import { useAuth } from '../../auth/AuthContext'
 import { buildPdf, downloadBlob, safeFilename } from '../../lib/pdf'
+import { finalResult, RESULT_LABELS } from '../../lib/evaluation'
+import { evaluateDraft } from './evaluate'
 import { loadReception } from './api'
 
 export function ReportPage() {
@@ -59,6 +61,8 @@ export function ReportPage() {
   const dash = (v: string) => v || '—'
   const dateText = new Date(d.received_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })
   const hasDryMatter = products.find((p) => p.id === d.product_id)?.has_dry_matter ?? false
+  const evaluation = evaluateDraft(d, hasDryMatter)
+  const result = finalResult(d.decision, evaluation.suggestion)
   const dryMatter =
     hasDryMatter ? (d.dry_matter ? `${d.dry_matter} %` : 'Pendiente laboratorio') : 'No aplica'
 
@@ -161,6 +165,30 @@ export function ReportPage() {
             <tr><th>Origen</th><td>{dash(d.origin)}</td><th>Camión</th><td>{dash(d.truck)}</td></tr>
             <tr><th>Formato</th><td>{dash(d.format)}</td><th>Calibre</th><td>{dash(d.caliber)}</td></tr>
             <tr><th>Estado</th><td colSpan={3}>{d.status === 'closed' ? 'Cerrada' : 'Borrador'}</td></tr>
+          </tbody>
+        </table>
+
+        <h2>Resultado</h2>
+        <div className={'result-box res-' + result}>
+          <div className="muted">{d.decision ? 'Decisión de Calidad' : 'Propuesta automática'}</div>
+          <strong>{RESULT_LABELS[result]}</strong>
+          {d.decision && d.decision !== evaluation.suggestion && <span>La propuesta de las reglas era: {RESULT_LABELS[evaluation.suggestion]}</span>}
+          {d.decision_note && <span>{d.decision_note}</span>}
+        </div>
+        <table>
+          <thead>
+            <tr><th>Control</th><th>Estado</th><th>Detalle</th></tr>
+          </thead>
+          <tbody>
+            {evaluation.checks.map((c) => (
+              <tr key={c.key}>
+                <td>{c.label}</td>
+                <td style={{ fontWeight: 700, color: c.status === 'breach' ? '#c0392b' : c.status === 'ok' ? '#16834b' : '#6b7785' }}>
+                  {c.status === 'ok' ? 'OK' : c.status === 'breach' ? 'INCUMPLE' : 'Sin dato'}
+                </td>
+                <td>{c.detail}</td>
+              </tr>
+            ))}
           </tbody>
         </table>
 

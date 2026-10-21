@@ -24,6 +24,10 @@ export interface RegisterReception {
   dry_matter: number | null
   notes: string
   inspector: string
+  breaches: number
+  autoResult: string | null
+  decision: string | null
+  decisionNote: string
   pallets: { position: number; boxes: number; gross_kg: number | null }[]
   defects: { name: string; percent: number | null }[]
   photoCount: number
@@ -37,7 +41,7 @@ export async function loadRegister(ids: string[]): Promise<RegisterReception[]> 
   for (let i = 0; i < ids.length; i += 50) {
     const chunk = ids.slice(i, i + 50)
     const [rec, pal, def, pho] = await Promise.all([
-      supabase.from('receptions').select('*, profiles(full_name)').in('id', chunk),
+      supabase.from('receptions').select('*, profiles:profiles!receptions_inspector_id_fkey(full_name)').in('id', chunk),
       supabase.from('pallets').select('reception_id, position, boxes, gross_kg').in('reception_id', chunk).order('position'),
       supabase.from('defects').select('reception_id, name, percent').in('reception_id', chunk),
       supabase.from('photos').select('reception_id').in('reception_id', chunk),
@@ -67,6 +71,10 @@ export async function loadRegister(ids: string[]): Promise<RegisterReception[]> 
         dry_matter: num(r.dry_matter),
         notes: r.notes,
         inspector: (r.profiles as { full_name: string } | null)?.full_name ?? '',
+        breaches: r.breaches ?? 0,
+        autoResult: r.auto_result ?? null,
+        decision: r.decision ?? null,
+        decisionNote: r.decision_note ?? '',
         pallets: [],
         defects: [],
         photoCount: 0,

@@ -2,6 +2,7 @@ import type { Cell, Worksheet } from 'exceljs'
 import type { RegisterReception } from '../features/receptions/register'
 import { palletResult, summarize } from './calculations'
 import { downloadBlob } from './pdf'
+import { RESULT_LABELS, type Result } from './evaluation'
 
 const asDate = (iso: string) => {
   const d = new Date(iso)
@@ -21,6 +22,8 @@ function styleSheet(ws: Worksheet, widths: number[]) {
   ws.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: ws.columnCount } }
 }
 
+const label = (r: string | null) => (r ? (RESULT_LABELS[r as Result] ?? r) : '')
+
 function redIf(cell: Cell, bad: boolean) {
   if (bad) cell.font = { bold: true, color: { argb: 'FFB42318' } }
 }
@@ -39,6 +42,10 @@ export async function exportRegisterXlsx(rows: RegisterReception[], filename: st
   ws.columns = [
     { header: 'Fecha', key: 'fecha', style: dateFmt },
     { header: 'Estado', key: 'estado' },
+    { header: 'Resultado', key: 'resultado' },
+    { header: 'Incumplimientos', key: 'incumple' },
+    { header: 'Decisión de Calidad', key: 'decision' },
+    { header: 'Comentario de la decisión', key: 'comentario' },
     { header: 'Inspector', key: 'inspector' },
     { header: 'Proveedor', key: 'proveedor' },
     { header: 'Producto', key: 'producto' },
@@ -105,6 +112,10 @@ export async function exportRegisterXlsx(rows: RegisterReception[], filename: st
     const row = ws.addRow({
       fecha: date,
       estado: r.status === 'closed' ? 'Cerrada' : 'Borrador',
+      resultado: label(r.decision ?? r.autoResult),
+      incumple: r.breaches,
+      decision: label(r.decision),
+      comentario: r.decisionNote,
       inspector: r.inspector,
       proveedor: r.supplier_name,
       producto: r.product,
@@ -132,6 +143,8 @@ export async function exportRegisterXlsx(rows: RegisterReception[], filename: st
       obs: r.notes,
     })
     redIf(row.getCell('bajo'), sum.belowMin > 0)
+    redIf(row.getCell('incumple'), r.breaches > 0)
+    redIf(row.getCell('resultado'), (r.decision ?? r.autoResult) === 'rejected')
     redIf(row.getCell('dif'), weighed.length > 0 && sum.netTotal < minWeighed)
 
     r.pallets.forEach((p, i) => {
@@ -164,7 +177,7 @@ export async function exportRegisterXlsx(rows: RegisterReception[], filename: st
     }
   }
 
-  styleSheet(ws, [17, 10, 18, 24, 12, 9, 16, 14, 14, 12, 9, 10, 11, 10, 13, 13, 12, 11, 10, 12, 12, 8, 11, 14, 36, 8, 40])
+  styleSheet(ws, [17, 10, 22, 10, 22, 30, 18, 24, 12, 9, 16, 14, 14, 12, 9, 10, 11, 10, 13, 13, 12, 11, 10, 12, 12, 8, 11, 14, 36, 8, 40])
   styleSheet(wp, [17, 24, 12, 14, 7, 8, 11, 10, 11, 11, 11, 14])
   styleSheet(wd, [17, 24, 12, 14, 26, 12])
 

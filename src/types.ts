@@ -1,3 +1,5 @@
+import type { Result } from './lib/evaluation'
+
 export type Role = 'inspector' | 'calidad' | 'admin'
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -56,6 +58,11 @@ export interface Agreement {
   tare_box: number
   tare_pallet: number
   tare_other: number
+  max_temperature: number | null
+  min_brix: number | null
+  max_defect_pct: number | null
+  min_dry_matter: number | null
+  max_transport_temp: number | null
 }
 
 export interface ReceptionSummary {
@@ -66,6 +73,9 @@ export interface ReceptionSummary {
   lot: string
   status: 'draft' | 'closed'
   inspector_id: string
+  breaches: number
+  auto_result: Result | null
+  decision: Result | null
   profiles: { full_name: string } | null
 }
 
@@ -119,6 +129,20 @@ export interface ReceptionDraft {
   dry_matter: string
   notes: string
   status: 'draft' | 'closed'
+  /** Límites de la especificación con que se evalúa ('' = no se comprueba). */
+  limit_max_temperature: string
+  limit_min_brix: string
+  limit_max_defect_pct: string
+  limit_min_dry_matter: string
+  limit_max_transport_temp: string
+  /** Evaluación calculada al guardar. */
+  breaches: number
+  auto_result: Result | null
+  /** Decisión final de Calidad (opcional) y su comentario. */
+  decision: Result | null
+  decision_note: string
+  decided_by: string | null
+  decided_at: string | null
   inspector_name?: string // solo lectura
   pallets: PalletDraft[]
   defects: DefectDraft[]

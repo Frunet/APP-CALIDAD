@@ -1,7 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { isNetworkError } from '../../lib/network'
+import { RESULT_LABELS, type Result } from '../../lib/evaluation'
+import { evaluateDraft } from './evaluate'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { palletResult, summarize, toNumber, type WeightConfig } from '../../lib/calculations'
 import { byCaliberName, useMasters } from '../../lib/masters'
@@ -18,12 +20,12 @@ import {
 } from './api'
 import { useSync } from './SyncContext'
 
-const STEPS = ['Recepción', 'Palets', 'Calidad', 'Fotos'] as const
+const STEPS = ['Recepción', 'Palets', 'Calidad', 'Fotos', 'Resultado'] as const
 
 export function ReceptionEditor() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { canReview } = useAuth()
+  const { canReview, profile } = useAuth()
   const { enqueue } = useSync()
   const [draft, setDraft] = useState<ReceptionDraft | null>(id ? null : emptyDraft())
   const [step, setStep] = useState(0)
@@ -31,6 +33,8 @@ export function ReceptionEditor() {
   const [loadedAgreement, setLoadedAgreement] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(0)
+  // decisión tal como estaba al cargar: sirve para saber si Calidad la ha cambiado
+  const origDecision = useRef<{ decision: Result | null; note: string }>({ decision: null, note: '' })
   const [error, setError] = useState<string | null>(null)
   const { products, calibers, suppliers, defectTypes, loaded: mastersLoaded, error: mastersError } = useMasters()
 
@@ -41,7 +45,10 @@ export function ReceptionEditor() {
   useEffect(() => {
     if (!id) return
     loadReception(id)
-      .then(setDraft)
+      .then((d) => {
+        origDecision.current = { decision: d.decision, note: d.decision_note }
+        setDraft(d)
+      })
       .catch(() => setError('No se pudo cargar la recepción.'))
   }, [id])
 
@@ -75,7 +82,8 @@ export function ReceptionEditor() {
     const a = findAgreement(agreements, next.supplier_id, next.product_id, next.format)
     if (!a) {
       setLoadedAgreement(null)
-      setDraft(next)
+      // sin especificación: no hay límites de calidad que vigilar
+      setDraft({ ...next, limit_max_temperature: '', limit_min_brix: '', limit_max_defect_pct: '', limit_min_dry_matter: '', limit_max_transport_temp: '' })
       return
     }
     setLoadedAgreement(`${a.suppliers?.name} · ${a.products?.name}${a.format ? ' · ' + a.format : ''}`)
@@ -86,6 +94,11 @@ export function ReceptionEditor() {
       tare_box: String(a.tare_box),
       tare_pallet: String(a.tare_pallet),
       tare_other: String(a.tare_other),
+      limit_max_temperature: a.max_temperature === null ? '' : String(a.max_temperature),
+      limit_min_brix: a.min_brix === null ? '' : String(a.min_brix),
+      limit_max_defect_pct: a.max_defect_pct === null ? '' : String(a.max_defect_pct),
+      limit_min_dry_matter: a.min_dry_matter === null ? '' : String(a.min_dry_matter),
+      limit_max_transport_temp: a.max_transport_temp === null ? '' : String(a.max_transport_temp),
       pallets: next.pallets.map((p) => ({ ...p, boxes: String(a.boxes_per_pallet) })),
     })
   }
@@ -122,6 +135,15 @@ export function ReceptionEditor() {
 
   const results = draft.pallets.map((p) => palletResult(p.boxes, p.gross, cfg))
   const summary = summarize(results)
+  const evaluation = evaluateDraft(draft, !!currentProduct?.has_dry_matter)
+  const breachNote = (...keys: string[]) =>
+    evaluation.checks
+      .filter((c) => keys.includes(c.key) && c.status === 'breach')
+      .map((c) => (
+        <div className="result bad" key={c.key}>
+          ⚠ {c.detail}
+        </div>
+      ))
 
   const addPhotos = (added: PhotoDraft[]) => setDraft((d) => (d ? { ...d, photos: [...d.photos, ...added] } : d))
   const trackBusy = (b: boolean) => setProcessing((n) => n + (b ? 1 : -1))
@@ -145,7 +167,22 @@ export function ReceptionEditor() {
       const finalStatus = draft!.status === 'closed' ? 'closed' : status
       // La materia seca solo aplica a los productos que la piden.
       const lab = currentProduct?.has_dry_matter ? {} : { dry_matter: '', lab_ref: '' }
-      const toSave = { ...draft!, ...lab, status: finalStatus, id: draft!.id ?? newId() }
+      const evaluated = evaluateDraft({ ...draft!, ...lab }, !!currentProduct?.has_dry_matter)
+      const decisionChanged = draft!.decision !== origDecision.current.decision || draft!.decision_note !== origDecision.current.note
+      const toSave = {
+        ...draft!,
+        ...lab,
+        status: finalStatus,
+        id: draft!.id ?? newId(),
+        breaches: evaluated.breaches,
+        auto_result: evaluated.suggestion,
+        // quién y cuándo decidió el resultado (solo si lo cambia Calidad o el administrador)
+        ...(canReview && decisionChanged
+          ? draft!.decision || draft!.decision_note
+            ? { decided_by: profile?.id ?? null, decided_at: new Date().toISOString() }
+            : { decided_by: null, decided_at: null }
+          : {}),
+      }
 
       // Sin conexión: se guarda en el dispositivo y se envía solo al volver la red.
       if (!navigator.onLine) {
@@ -372,6 +409,7 @@ export function ReceptionEditor() {
               <input type="number" step="0.1" value={draft.brix} onChange={(e) => set('brix', e.target.value)} />
             </label>
           </div>
+          {breachNote('temperature', 'brix')}
 
           <h3>Defectos detectados</h3>
           {draft.defects.map((d, i) => (
@@ -435,6 +473,7 @@ export function ReceptionEditor() {
               + Añadir defecto
             </button>
           </div>
+          {breachNote('defects')}
 
           {currentProduct?.has_dry_matter && (
             <>
@@ -450,6 +489,7 @@ export function ReceptionEditor() {
                 </label>
               </div>
               <p className="muted">Puede quedar pendiente y completarse después.</p>
+              {breachNote('dryMatter')}
             </>
           )}
           <label style={{ marginTop: 12 }}>
@@ -471,6 +511,73 @@ export function ReceptionEditor() {
               </div>
             ))}
           </div>
+        </div>
+      )}
+
+      {step === 4 && (
+        <div className="card">
+          <h2>Resultado de la recepción</h2>
+          <div className={'result-box res-' + evaluation.suggestion}>
+            <div className="muted">Propuesta según las reglas</div>
+            <strong>{RESULT_LABELS[evaluation.suggestion]}</strong>
+            <span>
+              {evaluation.breaches === 0 ? 'Sin incumplimientos' : `${evaluation.breaches} incumplimiento${evaluation.breaches === 1 ? '' : 's'}`}
+            </span>
+          </div>
+          <div className="checks">
+            {evaluation.checks.map((c) => (
+              <div className={'check-row ' + c.status} key={c.key}>
+                <span className="check-icon">{c.status === 'ok' ? '✓' : c.status === 'breach' ? '⚠' : '–'}</span>
+                <b>{c.label}</b>
+                <span>{c.detail}</span>
+              </div>
+            ))}
+          </div>
+          {evaluation.checks.length === 1 && (
+            <p className="muted">
+              Esta especificación no define límites de calidad (temperatura, °Brix, defectos…); solo se vigila el peso. Se pueden añadir en
+              Especificaciones.
+            </p>
+          )}
+
+          {canReview ? (
+            <>
+              <h3>Decisión de Calidad</h3>
+              <label>
+                Resultado final
+                <select
+                  value={draft.decision ?? ''}
+                  onChange={(e) => set('decision', (e.target.value || null) as Result | null)}
+                >
+                  <option value="">Sin decisión (vale la propuesta)</option>
+                  {(Object.keys(RESULT_LABELS) as Result[]).map((r) => (
+                    <option key={r} value={r}>
+                      {RESULT_LABELS[r]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label style={{ marginTop: 10 }}>
+                Comentario
+                <textarea
+                  value={draft.decision_note}
+                  onChange={(e) => set('decision_note', e.target.value)}
+                  placeholder="Motivo de la decisión, acuerdo con el proveedor, acciones…"
+                />
+              </label>
+              {draft.decided_at && (
+                <p className="muted">Decidido el {new Date(draft.decided_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}.</p>
+              )}
+            </>
+          ) : (
+            draft.decision && (
+              <div className={'result-box res-' + draft.decision}>
+                <div className="muted">Decisión de Calidad</div>
+                <strong>{RESULT_LABELS[draft.decision]}</strong>
+                {draft.decision_note && <span>{draft.decision_note}</span>}
+              </div>
+            )
+          )}
         </div>
       )}
 

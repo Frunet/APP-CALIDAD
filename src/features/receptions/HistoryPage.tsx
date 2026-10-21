@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../auth/AuthContext'
 import { exportRegisterXlsx } from '../../lib/excel'
+import { RESULT_LABELS, type Result } from '../../lib/evaluation'
 import { useMasters } from '../../lib/masters'
 import { supabase } from '../../lib/supabase'
 import type { Profile, ReceptionSummary } from '../../types'
@@ -9,7 +10,7 @@ import { deleteReception, listReceptions, type HistoryFilters } from './api'
 import { exportReceptionsPdf } from './pdfExport'
 import { loadRegister } from './register'
 
-const NO_FILTERS: HistoryFilters = { search: '', status: '', inspectorId: '', from: '', to: '' }
+const NO_FILTERS: HistoryFilters = { search: '', status: '', inspectorId: '', from: '', to: '', result: '' }
 const MAX_PDF = 100
 
 export function HistoryPage() {
@@ -74,6 +75,7 @@ export function HistoryPage() {
         : `Recepciones incluidas: ${count}${total > count ? ` (de ${total}; máximo ${MAX_PDF} por informe)` : ''}`,
       `Periodo: ${filters.from || 'inicio'} a ${filters.to || 'hoy'}`,
       ...(filters.status ? [`Estado: ${filters.status === 'closed' ? 'cerradas' : 'borradores'}`] : []),
+      ...(filters.result ? [`Resultado: ${RESULT_LABELS[filters.result].toLowerCase()}`] : []),
       ...(inspector ? [`Inspector: ${inspector}`] : []),
       ...(filters.search ? [`Búsqueda: ${filters.search}`] : []),
     ]
@@ -166,6 +168,17 @@ export function HistoryPage() {
           </select>
         </label>
         <label>
+          Resultado
+          <select value={filters.result} onChange={(e) => set('result', e.target.value as HistoryFilters['result'])}>
+            <option value="">Todos</option>
+            {(Object.keys(RESULT_LABELS) as Result[]).map((r) => (
+              <option key={r} value={r}>
+                {RESULT_LABELS[r]}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label>
           Inspector
           <select value={filters.inspectorId} onChange={(e) => set('inspectorId', e.target.value)}>
             <option value="">Todos</option>
@@ -250,6 +263,12 @@ export function HistoryPage() {
               </span>
             </Link>
             <div className="list-actions">
+              {(r.decision ?? r.auto_result) && (
+                <span className={'badge res-' + (r.decision ?? r.auto_result)} title={r.decision ? 'Decisión de Calidad' : 'Propuesta automática'}>
+                  {RESULT_LABELS[(r.decision ?? r.auto_result) as Result]}
+                  {r.breaches > 0 && !r.decision ? ` · ${r.breaches}` : ''}
+                </span>
+              )}
               <span className={'badge' + (r.status === 'closed' ? ' badge-ok' : '')}>
                 {r.status === 'closed' ? 'Cerrada' : 'Borrador'}
               </span>
