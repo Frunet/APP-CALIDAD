@@ -16,7 +16,8 @@ export interface PdfOptions {
   onProgress?: (done: number, total: number) => void
 }
 
-const BRAND: [number, number, number] = [23, 63, 95]
+const BRAND: [number, number, number] = [18, 61, 90]
+const YELLOW: [number, number, number] = [244, 197, 66]
 const LIGHT: [number, number, number] = [238, 242, 246]
 const BAD: [number, number, number] = [180, 35, 24]
 const MARGIN = 14
@@ -57,6 +58,9 @@ async function loadPhoto(url: string, caption: string): Promise<LoadedPhoto | nu
   }
 }
 
+/** Logotipo de Frunet (public/logo-frunet.jpg); si no carga, el informe sale sin él. */
+const loadLogo = () => loadPhoto(`${import.meta.env.BASE_URL}logo-frunet.jpg`, 'logo')
+
 /** Descarga las fotos por tandas para no saturar la red. */
 async function loadPhotos(items: { url: string; caption: string }[]): Promise<LoadedPhoto[]> {
   const out: LoadedPhoto[] = []
@@ -71,6 +75,7 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
   const [{ jsPDF }, autoTableModule] = await Promise.all([import('jspdf'), import('jspdf-autotable')])
   const autoTable = autoTableModule.default
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  const logo = await loadLogo()
   const lastY = () => (doc as unknown as { lastAutoTable: { finalY: number } }).lastAutoTable.finalY
   let y = MARGIN
   let firstPage = true
@@ -108,8 +113,11 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
   if (items.length > 1) {
     newPage()
     doc.setFillColor(...BRAND).rect(0, 0, PAGE_W, 30, 'F')
-    doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(20).text('FrutaCheck QA', MARGIN, 14)
-    doc.setFont('helvetica', 'normal').setFontSize(11).text(opts.title, MARGIN, 23)
+    doc.setFillColor(...YELLOW).rect(0, 30, PAGE_W, 1.2, 'F')
+    const textX = logo ? MARGIN + 46 : MARGIN
+    if (logo) doc.addImage(logo.data, 'JPEG', MARGIN, 4, 22 * (logo.w / logo.h), 22)
+    doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(20).text('FrutaCheck QA', textX, 14)
+    doc.setFont('helvetica', 'normal').setFontSize(11).text(opts.title, textX, 23)
     doc.setTextColor(0, 0, 0)
     y = 38
     doc.setFontSize(9).setTextColor(60, 60, 60)
@@ -185,10 +193,13 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
     newPage()
 
     doc.setFillColor(...BRAND).rect(0, 0, PAGE_W, 22, 'F')
+    doc.setFillColor(...YELLOW).rect(0, 22, PAGE_W, 1, 'F')
+    const headX = logo ? MARGIN + 36 : MARGIN
+    if (logo) doc.addImage(logo.data, 'JPEG', MARGIN, 3, 16 * (logo.w / logo.h), 16)
     doc.setTextColor(255, 255, 255).setFont('helvetica', 'bold').setFontSize(15)
-    doc.text('FrutaCheck QA', MARGIN, 10)
+    doc.text('FrutaCheck QA', headX, 10)
     doc.setFont('helvetica', 'normal').setFontSize(10)
-    doc.text('Informe de control de recepción', MARGIN, 17)
+    doc.text('Informe de control de recepción', headX, 17)
     doc.text(`${dash(d.product)}${d.caliber ? ' · Calibre ' + d.caliber : ''}`, PAGE_W - MARGIN, 10, { align: 'right' })
     doc.text(fmtDate(d.received_at), PAGE_W - MARGIN, 17, { align: 'right' })
     doc.setTextColor(0, 0, 0)
@@ -304,6 +315,11 @@ export async function buildPdf(items: PdfReception[], opts: PdfOptions): Promise
         d.photos
           .filter((p) => p.defectId === x.id)
           .forEach((p, j) => wanted.push({ url: p.url, caption: `Defecto ${i + 1}: ${dash(x.name)} (${x.percent || '0'} %) · foto ${j + 1}` }))
+      })
+      d.pallets.forEach((_, i) => {
+        d.photos
+          .filter((p) => p.kind === 'origin' && p.palletIndex === i)
+          .forEach((p, j) => wanted.push({ url: p.url, caption: `Palet ${i + 1} · origen · foto ${j + 1}` }))
       })
       ;(Object.keys(GENERAL_PHOTO_LABELS) as (keyof typeof GENERAL_PHOTO_LABELS)[]).forEach((k) => {
         d.photos

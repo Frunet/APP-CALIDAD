@@ -42,7 +42,7 @@ export function emptyDraft(): ReceptionDraft {
     notes: '',
     status: 'draft',
     pallets: [{ boxes: '80', gross: '' }],
-    defects: [{ id: newId(), name: '', percent: '' }],
+    defects: [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
     photos: [],
   }
 }
@@ -87,13 +87,13 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
   const [rec, pal, def, pho] = await Promise.all([
     supabase.from('receptions').select('*, profiles(full_name)').eq('id', id).single(),
     supabase.from('pallets').select('position, boxes, gross_kg').eq('reception_id', id).order('position'),
-    supabase.from('defects').select('id, name, percent').eq('reception_id', id),
-    supabase.from('photos').select('id, kind, defect_id, storage_path').eq('reception_id', id).order('created_at'),
+    supabase.from('defects').select('id, name, percent, defect_type_id').eq('reception_id', id),
+    supabase.from('photos').select('id, kind, defect_id, pallet_position, storage_path').eq('reception_id', id).order('created_at'),
   ])
   for (const r of [rec, pal, def, pho]) if (r.error) throw r.error
   const r = rec.data!
   const urls = await signedUrls((pho.data ?? []).map((p) => p.storage_path))
-  const defects = (def.data ?? []).map((d) => ({ id: d.id, name: d.name, percent: s(d.percent) }))
+  const defects = (def.data ?? []).map((d) => ({ id: d.id, defectTypeId: d.defect_type_id as string | null, name: d.name, percent: s(d.percent) }))
   return {
     id: r.id,
     received_at: toLocalInput(r.received_at),
@@ -121,11 +121,12 @@ export async function loadReception(id: string): Promise<ReceptionDraft> {
     status: r.status,
     inspector_name: (r.profiles as { full_name: string } | null)?.full_name ?? '',
     pallets: (pal.data ?? []).map((p) => ({ boxes: s(p.boxes), gross: s(p.gross_kg) })),
-    defects: defects.length ? defects : [{ id: newId(), name: '', percent: '' }],
+    defects: defects.length ? defects : [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
     photos: (pho.data ?? []).map((p) => ({
       id: p.id,
       kind: p.kind as PhotoKind,
       defectId: p.defect_id,
+      palletIndex: p.pallet_position === null ? null : p.pallet_position - 1,
       path: p.storage_path,
       file: null,
       url: urls[p.storage_path] ?? '',
@@ -193,13 +194,24 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
   }
   if (keepDefects.length) {
     const { error } = await supabase.from('defects').upsert(
-      keepDefects.map((d) => ({ id: d.id, reception_id: id, name: d.name.trim(), percent: toNumber(d.percent) })),
+      keepDefects.map((d) => ({
+        id: d.id,
+        reception_id: id,
+        defect_type_id: d.defectTypeId,
+        name: d.name.trim(),
+        percent: toNumber(d.percent),
+      })),
     )
     if (error) throw error
   }
 
   // Fotos: borrar las quitadas, subir las nuevas.
-  const photos = draft.photos.filter((p) => p.kind !== 'defect' || (p.defectId && keepIds.has(p.defectId)))
+  // Se descartan las fotos de defectos eliminados y las de palets que ya no existen.
+  const photos = draft.photos.filter(
+    (p) =>
+      (p.kind !== 'defect' || (p.defectId && keepIds.has(p.defectId))) &&
+      (p.kind !== 'origin' || (p.palletIndex !== null && p.palletIndex < draft.pallets.length)),
+  )
   const { data: existingPhotos, error: e4 } = await supabase.from('photos').select('id, storage_path').eq('reception_id', id)
   if (e4) throw e4
   const keepPhotoIds = new Set(photos.map((p) => p.id))
@@ -215,7 +227,14 @@ export async function saveReception(draft: ReceptionDraft): Promise<string> {
     if (up.error) throw up.error
     const { error } = await supabase
       .from('photos')
-      .upsert({ id: p.id, reception_id: id, defect_id: p.defectId, kind: p.kind, storage_path: path })
+      .upsert({
+        id: p.id,
+        reception_id: id,
+        defect_id: p.defectId,
+        pallet_position: p.palletIndex === null ? null : p.palletIndex + 1,
+        kind: p.kind,
+        storage_path: path,
+      })
     if (error) throw error
   }
   return id

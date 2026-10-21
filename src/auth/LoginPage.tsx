@@ -31,6 +31,7 @@ export function LoginPage() {
   return (
     <main className="login">
       <form className="card" onSubmit={submit}>
+        <img className="login-logo" src={`${import.meta.env.BASE_URL}logo-frunet.jpg`} alt="Frunet" />
         <h1>FrutaCheck QA</h1>
         <p className="muted">Control de calidad de recepción</p>
         <label>

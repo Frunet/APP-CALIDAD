@@ -23,7 +23,8 @@ export function Layout() {
   return (
     <>
       <header className="app-header no-print">
-        <div>
+        <img className="brand-logo" src={`${import.meta.env.BASE_URL}logo-frunet.jpg`} alt="Frunet" />
+        <div className="grow">
           <h1>FrutaCheck QA</h1>
           <small>
             {profile.full_name || session.user.email} · {ROLE_LABELS[profile.role]}

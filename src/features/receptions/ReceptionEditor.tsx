@@ -29,7 +29,7 @@ export function ReceptionEditor() {
   const [saving, setSaving] = useState(false)
   const [processing, setProcessing] = useState(0)
   const [error, setError] = useState<string | null>(null)
-  const { products, calibers, suppliers, loaded: mastersLoaded, error: mastersError } = useMasters()
+  const { products, calibers, suppliers, defectTypes, loaded: mastersLoaded, error: mastersError } = useMasters()
 
   useEffect(() => {
     listAgreements().then(setAgreements).catch(() => setAgreements([]))
@@ -113,7 +113,8 @@ export function ReceptionEditor() {
     const count = Math.max(1, Math.min(60, n || 1))
     const pallets = draft!.pallets.slice(0, count)
     while (pallets.length < count) pallets.push({ boxes: draft!.boxes_per_pallet, gross: '' })
-    set('pallets', pallets)
+    // las fotos de origen de palets que desaparecen se descartan
+    setDraft({ ...draft!, pallets, photos: draft!.photos.filter((p) => p.kind !== 'origin' || (p.palletIndex ?? 0) < count) })
   }
 
   const results = draft.pallets.map((p) => palletResult(p.boxes, p.gross, cfg))
@@ -324,6 +325,8 @@ export function ReceptionEditor() {
                     ? `Neto: ${r.net!.toFixed(1)} kg · Mínimo: ${r.minimum.toFixed(1)} kg · ${r.net! - r.minimum >= 0 ? '+' : ''}${(r.net! - r.minimum).toFixed(1)} kg`
                     : `Mínimo neto: ${r.minimum.toFixed(1)} kg`}
                 </div>
+                <label style={{ marginTop: 10 }}>Foto del palet de origen (palet {i + 1})</label>
+                <PhotoPicker kind="origin" palletIndex={i} photos={draft.photos} onAdd={addPhotos} onRemove={removePhoto} onBusy={trackBusy} />
               </div>
             )
           })}
@@ -364,7 +367,7 @@ export function ReceptionEditor() {
                     const rest = draft.defects.filter((x) => x.id !== d.id)
                     setDraft({
                       ...draft,
-                      defects: rest.length ? rest : [{ id: newId(), name: '', percent: '' }],
+                      defects: rest.length ? rest : [{ id: newId(), defectTypeId: null, name: '', percent: '' }],
                       photos: draft.photos.filter((p) => p.defectId !== d.id),
                     })
                   }}
@@ -375,11 +378,22 @@ export function ReceptionEditor() {
               <div className="grid">
                 <label>
                   Tipo de defecto
-                  <input
-                    value={d.name}
-                    placeholder="Ej. golpe, podrido, moho, sobremaduro"
-                    onChange={(e) => set('defects', draft.defects.map((x) => (x.id === d.id ? { ...x, name: e.target.value } : x)))}
-                  />
+                  <select
+                    value={d.defectTypeId ?? ''}
+                    onChange={(e) => {
+                      const t = defectTypes.find((x) => x.id === e.target.value)
+                      set('defects', draft.defects.map((x) => (x.id === d.id ? { ...x, defectTypeId: t?.id ?? null, name: t?.name ?? '' } : x)))
+                    }}
+                  >
+                    <option value="">Selecciona un defecto</option>
+                    {defectTypes
+                      .filter((t) => t.active || t.id === d.defectTypeId)
+                      .map((t) => (
+                        <option key={t.id} value={t.id}>
+                          {t.name}
+                        </option>
+                      ))}
+                  </select>
                 </label>
                 <label>
                   Porcentaje (%)
@@ -399,7 +413,7 @@ export function ReceptionEditor() {
             </div>
           ))}
           <div className="actions">
-            <button type="button" className="btn secondary" onClick={() => set('defects', [...draft.defects, { id: newId(), name: '', percent: '' }])}>
+            <button type="button" className="btn secondary" onClick={() => set('defects', [...draft.defects, { id: newId(), defectTypeId: null, name: '', percent: '' }])}>
               + Añadir defecto
             </button>
           </div>

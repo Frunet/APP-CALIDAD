@@ -37,7 +37,7 @@ supabase/migrations/       esquema SQL, RLS y storage
 |---|---|
 | **Inspector** | Crear recepciones (con fotos). No ve el historial ni los informes. |
 | **Calidad** | Todo lo del inspector + **Historial** e **informes** de todas las recepciones: filtros, Excel, PDF, modificar y eliminar. |
-| **Administrador** | Todo lo de Calidad + **Maestros** (proveedores, productos, calibres), **especificaciones** y **usuarios**. |
+| **Administrador** | Todo lo de Calidad + **Maestros** (proveedores, productos, calibres, defectos), **especificaciones** y **usuarios**. |
 
 El **primer usuario** que se crea queda como administrador (trigger `handle_new_user`); los siguientes son inspectores.
 Los roles se cambian en Maestros → Usuarios. El login acepta el nombre de usuario (`IV GAMA` → `iv-gama@frutacheck.test`).
@@ -49,7 +49,7 @@ Recomendado: en *Authentication → Sign In / Providers* desactiva *Allow new us
 
 ## Datos
 
-Tablas: `profiles`, `suppliers`, `products`, `calibers`, `agreements` (especificaciones), `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
+Tablas: `profiles`, `suppliers`, `products`, `calibers`, `defect_types`, `agreements` (especificaciones), `receptions`, `pallets`, `defects`, `photos`. Fotos en el bucket privado
 `reception-photos` (`{reception_id}/{photo_id}.jpg`), servidas con URLs firmadas. Seguridad por filas en todas las tablas.
 
 ## Pendiente / ideas

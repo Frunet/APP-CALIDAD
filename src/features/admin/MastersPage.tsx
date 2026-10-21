@@ -3,13 +3,14 @@ import { supabase } from '../../lib/supabase'
 import { byCaliberName, useMasters } from '../../lib/masters'
 import { UsersPage } from './UsersPage'
 
-type Tab = 'suppliers' | 'products' | 'calibers' | 'users'
-type Table = 'suppliers' | 'products' | 'calibers'
+type Tab = 'suppliers' | 'products' | 'calibers' | 'defects' | 'users'
+type Table = 'suppliers' | 'products' | 'calibers' | 'defect_types'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'suppliers', label: 'Proveedores' },
   { id: 'products', label: 'Productos' },
   { id: 'calibers', label: 'Calibres' },
+  { id: 'defects', label: 'Defectos' },
   { id: 'users', label: 'Usuarios' },
 ]
 
@@ -20,7 +21,7 @@ function explain(err: { code?: string; message: string }): string {
 }
 
 export function MastersPage() {
-  const { suppliers, products, calibers, loaded, error: loadError, refresh } = useMasters()
+  const { suppliers, products, calibers, defectTypes, loaded, error: loadError, refresh } = useMasters()
   const [tab, setTab] = useState<Tab>('suppliers')
   const [error, setError] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
@@ -45,6 +46,12 @@ export function MastersPage() {
     const name = newName.trim()
     if (!name) return
     if (await run(supabase.from('suppliers').insert({ name }))) setNewName('')
+  }
+
+  async function addDefectType() {
+    const name = newName.trim()
+    if (!name) return
+    if (await run(supabase.from('defect_types').insert({ name }))) setNewName('')
   }
 
   async function addProduct() {
@@ -171,6 +178,43 @@ export function MastersPage() {
               </div>
             ))}
             {loaded && !products.length && <p className="muted">No hay productos todavía.</p>}
+          </div>
+        </div>
+      )}
+
+      {tab === 'defects' && (
+        <div className="card">
+          <h2>Defectos</h2>
+          <p className="muted">Lista de defectos que los inspectores eligen en el control de calidad.</p>
+          <div className="add-row">
+            <input
+              placeholder="Nombre del defecto"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addDefectType()}
+            />
+            <button className="btn ok" onClick={addDefectType}>
+              + Añadir
+            </button>
+          </div>
+          <div className="list">
+            {defectTypes.map((t) => (
+              <div className="list-item" key={t.id}>
+                <input
+                  className="inline"
+                  defaultValue={t.name}
+                  onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== t.name && update('defect_types', t.id, { name: e.target.value.trim() })}
+                />
+                <label className="check">
+                  <input type="checkbox" checked={t.active} onChange={(e) => update('defect_types', t.id, { active: e.target.checked })} />
+                  Activo
+                </label>
+                <button className="btn danger" onClick={() => remove('defect_types', t.id, t.name)}>
+                  Eliminar
+                </button>
+              </div>
+            ))}
+            {loaded && !defectTypes.length && <p className="muted">No hay defectos definidos todavía.</p>}
           </div>
         </div>
       )}

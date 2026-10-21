@@ -5,16 +5,17 @@ import type { PhotoDraft, PhotoKind } from '../types'
 interface Props {
   kind: PhotoKind
   defectId?: string | null
+  palletIndex?: number | null
   photos: PhotoDraft[]
   onAdd: (photos: PhotoDraft[]) => void
   onRemove: (id: string) => void
   onBusy?: (busy: boolean) => void
 }
 
-export function PhotoPicker({ kind, defectId = null, photos, onAdd, onRemove, onBusy }: Props) {
+export function PhotoPicker({ kind, defectId = null, palletIndex = null, photos, onAdd, onRemove, onBusy }: Props) {
   const input = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
-  const mine = photos.filter((p) => p.kind === kind && p.defectId === defectId)
+  const mine = photos.filter((p) => p.kind === kind && p.defectId === defectId && p.palletIndex === palletIndex)
 
   async function pick(files: FileList | null) {
     if (!files?.length) return
@@ -24,7 +25,7 @@ export function PhotoPicker({ kind, defectId = null, photos, onAdd, onRemove, on
     for (const f of Array.from(files)) {
       try {
         const blob = await compressImage(f)
-        added.push({ id: crypto.randomUUID(), kind, defectId, path: null, file: blob, url: URL.createObjectURL(blob) })
+        added.push({ id: crypto.randomUUID(), kind, defectId, palletIndex, path: null, file: blob, url: URL.createObjectURL(blob) })
       } catch {
         /* imagen ilegible: se ignora */
       }

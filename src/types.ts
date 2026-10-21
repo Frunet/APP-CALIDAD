@@ -5,9 +5,9 @@ export const ROLE_LABELS: Record<Role, string> = {
   calidad: 'Calidad',
   admin: 'Administrador',
 }
-export type PhotoKind = 'label' | 'pallet' | 'cut' | 'defect'
+export type PhotoKind = 'label' | 'pallet' | 'cut' | 'defect' | 'origin'
 
-export const GENERAL_PHOTO_LABELS: Record<Exclude<PhotoKind, 'defect'>, string> = {
+export const GENERAL_PHOTO_LABELS: Record<'label' | 'pallet' | 'cut', string> = {
   label: 'Albarán / etiqueta',
   pallet: 'Palet',
   cut: 'Corte / maduración',
@@ -30,6 +30,12 @@ export interface Product {
   id: string
   name: string
   has_dry_matter: boolean
+  active: boolean
+}
+
+export interface DefectType {
+  id: string
+  name: string
   active: boolean
 }
 
@@ -68,6 +74,8 @@ export interface PhotoDraft {
   id: string
   kind: PhotoKind
   defectId: string | null
+  /** Solo fotos de origen: índice (0, 1, …) del palet al que pertenecen. */
+  palletIndex: number | null
   path: string | null
   file: Blob | null
   url: string
@@ -75,6 +83,7 @@ export interface PhotoDraft {
 
 export interface DefectDraft {
   id: string
+  defectTypeId: string | null
   name: string
   percent: string
 }

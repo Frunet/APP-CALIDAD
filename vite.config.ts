@@ -7,7 +7,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['icon.svg'],
+      includeAssets: ['icon.svg', 'logo-frunet.jpg'],
       manifest: {
         name: 'FrutaCheck QA',
         short_name: 'FrutaCheck',

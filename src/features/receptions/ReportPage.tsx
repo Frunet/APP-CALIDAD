@@ -140,9 +140,12 @@ export function ReportPage() {
 
       <div className="report">
         <div className="report-head">
-          <div>
-            <h1 style={{ margin: 0 }}>FrutaCheck QA</h1>
-            <div>Informe de control de recepción</div>
+          <div className="report-brand">
+            <img src={`${import.meta.env.BASE_URL}logo-frunet.jpg`} alt="Frunet" />
+            <div>
+              <h1 style={{ margin: 0 }}>FrutaCheck QA</h1>
+              <div className="report-subtitle">Informe de control de recepción</div>
+            </div>
           </div>
           <div style={{ textAlign: 'right' }}>
             <b>{d.product}</b>
@@ -226,6 +229,21 @@ export function ReportPage() {
         </div>
 
         <p><b>Observaciones:</b> {dash(d.notes)}</p>
+
+        <h2>Fotos de palets de origen</h2>
+        <div className="report-photos">
+          {d.pallets.map((_, i) => {
+            const ph = d.photos.filter((p) => p.kind === 'origin' && p.palletIndex === i)
+            return (
+              <div className="report-photo" key={i}>
+                <b>
+                  Palet {i + 1} · Fotos de origen ({ph.length})
+                </b>
+                {ph.length ? ph.map((p) => <img key={p.id} src={p.url} alt="" />) : <p className="muted">Sin foto de origen</p>}
+              </div>
+            )
+          })}
+        </div>
 
         <h2>Fotografías generales</h2>
         <div className="report-photos">
