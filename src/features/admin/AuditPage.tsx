@@ -37,7 +37,7 @@ const FIELD_LABELS: Record<string, string> = {
 }
 // campos internos o derivados (se recalculan solos): no aportan al registro
 const HIDDEN_FIELDS = new Set([
-  'supplier_id', 'product_id', 'caliber_id', 'inspector_id', 'decided_by', 'decided_at', 'breaches', 'auto_result',
+  'supplier_id', 'product_id', 'caliber_id', 'origin_id', 'inspector_id', 'decided_by', 'decided_at', 'breaches', 'auto_result',
   'limit_max_temperature', 'limit_min_brix', 'limit_max_defect_pct', 'limit_min_dry_matter', 'limit_max_transport_temp',
   'transport_min', 'transport_max', 'transport_avg',
 ])

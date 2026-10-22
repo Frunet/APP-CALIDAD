@@ -4,13 +4,14 @@ import { byCaliberName, useMasters } from '../../lib/masters'
 import { AuditPage } from './AuditPage'
 import { UsersPage } from './UsersPage'
 
-type Tab = 'suppliers' | 'products' | 'calibers' | 'defects' | 'users' | 'audit'
-type Table = 'suppliers' | 'products' | 'calibers' | 'defect_types'
+type Tab = 'suppliers' | 'products' | 'calibers' | 'origins' | 'defects' | 'users' | 'audit'
+type Table = 'suppliers' | 'products' | 'calibers' | 'origins' | 'defect_types'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'suppliers', label: 'Proveedores' },
   { id: 'products', label: 'Productos' },
   { id: 'calibers', label: 'Calibres' },
+  { id: 'origins', label: 'Orígenes' },
   { id: 'defects', label: 'Defectos' },
   { id: 'users', label: 'Usuarios' },
   { id: 'audit', label: 'Registro' },
@@ -23,7 +24,7 @@ function explain(err: { code?: string; message: string }): string {
 }
 
 export function MastersPage() {
-  const { suppliers, products, calibers, defectTypes, loaded, error: loadError, refresh } = useMasters()
+  const { suppliers, products, calibers, defectTypes, origins, loaded, error: loadError, refresh } = useMasters()
   const [tab, setTab] = useState<Tab>('suppliers')
   const [error, setError] = useState<string | null>(null)
   const [newName, setNewName] = useState('')
@@ -48,6 +49,12 @@ export function MastersPage() {
     const name = newName.trim()
     if (!name) return
     if (await run(supabase.from('suppliers').insert({ name }))) setNewName('')
+  }
+
+  async function addOrigin() {
+    const name = newName.trim()
+    if (!name) return
+    if (await run(supabase.from('origins').insert({ name }))) setNewName('')
   }
 
   async function addDefectType() {
@@ -181,6 +188,43 @@ export function MastersPage() {
               </div>
             ))}
             {loaded && !products.length && <p className="muted">No hay productos todavía.</p>}
+          </div>
+        </div>
+      )}
+
+      {tab === 'origins' && (
+        <div className="card">
+          <h2>Orígenes</h2>
+          <p className="muted">País o zona de procedencia que se elige en cada recepción.</p>
+          <div className="add-row">
+            <input
+              placeholder="Nombre del origen"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && addOrigin()}
+            />
+            <button className="btn ok" onClick={addOrigin}>
+              + Añadir
+            </button>
+          </div>
+          <div className="list">
+            {origins.map((o) => (
+              <div className="list-item" key={o.id}>
+                <input
+                  className="inline"
+                  defaultValue={o.name}
+                  onBlur={(e) => e.target.value.trim() && e.target.value.trim() !== o.name && update('origins', o.id, { name: e.target.value.trim() })}
+                />
+                <label className="check">
+                  <input type="checkbox" checked={o.active} onChange={(e) => update('origins', o.id, { active: e.target.checked })} />
+                  Activo
+                </label>
+                <button className="btn danger" onClick={() => remove('origins', o.id, o.name)}>
+                  Eliminar
+                </button>
+              </div>
+            ))}
+            {loaded && !origins.length && <p className="muted">No hay orígenes todavía.</p>}
           </div>
         </div>
       )}

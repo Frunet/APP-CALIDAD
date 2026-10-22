@@ -36,6 +36,12 @@ export interface Product {
   active: boolean
 }
 
+export interface Origin {
+  id: string
+  name: string
+  active: boolean
+}
+
 export interface DefectType {
   id: string
   name: string
@@ -133,6 +139,7 @@ export interface ReceptionDraft {
   supplier_id: string | null
   supplier_name: string
   lot: string
+  origin_id: string | null
   origin: string
   truck: string
   format: string

@@ -21,6 +21,7 @@ import {
 import { useSync } from './SyncContext'
 import { ThermoSection } from './ThermoSection'
 
+const LEGACY_ORIGIN = '__legacy'
 const STEPS = ['Recepción', 'Palets', 'Calidad', 'Fotos', 'Resultado'] as const
 
 export function ReceptionEditor() {
@@ -37,7 +38,7 @@ export function ReceptionEditor() {
   // decisión tal como estaba al cargar: sirve para saber si Calidad la ha cambiado
   const origDecision = useRef<{ decision: Result | null; note: string }>({ decision: null, note: '' })
   const [error, setError] = useState<string | null>(null)
-  const { products, calibers, suppliers, defectTypes, loaded: mastersLoaded, error: mastersError } = useMasters()
+  const { products, calibers, suppliers, defectTypes, origins, loaded: mastersLoaded, error: mastersError } = useMasters()
 
   useEffect(() => {
     listAgreements().then(setAgreements).catch(() => setAgreements([]))
@@ -283,7 +284,25 @@ export function ReceptionEditor() {
             </label>
             <label>
               Origen
-              <input value={draft.origin} onChange={(e) => set('origin', e.target.value)} placeholder="País / zona" />
+              <select
+                value={draft.origin_id ?? (draft.origin ? LEGACY_ORIGIN : '')}
+                onChange={(e) => {
+                  const o = origins.find((x) => x.id === e.target.value)
+                  // «anterior» = texto libre de recepciones antiguas: se conserva mientras no se elija otro origen
+                  if (e.target.value === LEGACY_ORIGIN) return
+                  setDraft({ ...draft, origin_id: o?.id ?? null, origin: o?.name ?? '' })
+                }}
+              >
+                <option value="">— Selecciona —</option>
+                {!draft.origin_id && draft.origin && <option value={LEGACY_ORIGIN}>{draft.origin} (anterior)</option>}
+                {origins
+                  .filter((o) => o.active || o.id === draft.origin_id)
+                  .map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.name}
+                    </option>
+                  ))}
+              </select>
             </label>
             <label>
               Matrícula / camión

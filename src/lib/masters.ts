@@ -1,30 +1,33 @@
 import { useCallback, useEffect, useState } from 'react'
 import { cacheGet, cacheSet } from './cache'
 import { supabase } from './supabase'
-import type { Caliber, DefectType, Product, Supplier } from '../types'
+import type { Caliber, DefectType, Origin, Product, Supplier } from '../types'
 
 export interface Masters {
   products: Product[]
   calibers: Caliber[]
   suppliers: Supplier[]
   defectTypes: DefectType[]
+  origins: Origin[]
 }
 
-const EMPTY: Masters = { products: [], calibers: [], suppliers: [], defectTypes: [] }
+const EMPTY: Masters = { products: [], calibers: [], suppliers: [], defectTypes: [], origins: [] }
 
 export async function loadMasters(): Promise<Masters> {
-  const [p, c, s, d] = await Promise.all([
+  const [p, c, s, d, o] = await Promise.all([
     supabase.from('products').select('id, name, has_dry_matter, active').order('name'),
     supabase.from('calibers').select('id, product_id, name, active').order('name'),
     supabase.from('suppliers').select('id, name, active').order('name'),
     supabase.from('defect_types').select('id, name, active').order('name'),
+    supabase.from('origins').select('id, name, active').order('name'),
   ])
-  for (const r of [p, c, s, d]) if (r.error) throw r.error
+  for (const r of [p, c, s, d, o]) if (r.error) throw r.error
   const masters: Masters = {
     products: (p.data ?? []) as Product[],
     calibers: (c.data ?? []) as Caliber[],
     suppliers: (s.data ?? []) as Supplier[],
     defectTypes: (d.data ?? []) as DefectType[],
+    origins: (o.data ?? []) as Origin[],
   }
   cacheSet('masters', masters)
   return masters
@@ -47,7 +50,7 @@ export function useMasters() {
         // Sin conexión se usa la copia de la última vez que se cargaron.
         const cached = cacheGet<Masters>('masters')
         if (cached) {
-          setMasters(cached)
+          setMasters({ ...EMPTY, ...cached }) // copias antiguas pueden no traer todas las listas
           setError(null)
           setLoaded(true)
         } else setError('No se pudieron cargar los maestros.')
