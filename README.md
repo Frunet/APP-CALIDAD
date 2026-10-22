@@ -35,8 +35,8 @@ supabase/migrations/       esquema SQL, RLS y storage
 
 | Rol | Puede |
 |---|---|
-| **Inspector** | Crear recepciones (con fotos). No ve el historial ni los informes. |
-| **Calidad** | Todo lo del inspector + **Historial** e **informes** de todas las recepciones: filtros, Excel, PDF, modificar y eliminar. |
+| **Inspector** | Recepcionar (crear recepciones con fotos). No ve el historial ni los informes. |
+| **Calidad** | Todo lo del inspector + **Historial** (solo consulta, descarga y corrección; las recepciones nuevas se hacen en **Recepcionar**) e **informes** de todas las recepciones: filtros, Excel, PDF, modificar y eliminar. |
 | **Administrador** | Todo lo de Calidad + **Maestros** (proveedores, productos, calibres, defectos), **especificaciones** y **usuarios**. |
 
 El **primer usuario** que se crea queda como administrador (trigger `handle_new_user`); los siguientes son inspectores.

@@ -25,7 +25,7 @@ export function SavedPage() {
       )}
       <div className="actions">
         <Link className="btn" to="/receptions/new">
-          + Nueva recepción
+          Recepcionar otra
         </Link>
       </div>
     </div>

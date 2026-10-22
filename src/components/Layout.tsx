@@ -37,7 +37,7 @@ export function Layout() {
         </button>
       </header>
       <nav className="app-nav no-print">
-        <NavLink to="/receptions/new">Nuevo</NavLink>
+        <NavLink to="/receptions/new">Recepcionar</NavLink>
         <NavLink to="/specifications">Especificaciones</NavLink>
         {canReview && (
           <NavLink to="/" end>

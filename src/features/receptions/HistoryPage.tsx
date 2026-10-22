@@ -152,9 +152,6 @@ export function HistoryPage() {
     <div className="card">
       <div className="row-between">
         <h2>Historial de recepciones</h2>
-        <Link className="btn" to="/receptions/new">
-          + Nueva recepción
-        </Link>
       </div>
 
       <input placeholder="Buscar por proveedor o lote…" value={filters.search} onChange={(e) => set('search', e.target.value)} />
