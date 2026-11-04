@@ -4,12 +4,19 @@ import { useAuth } from './AuthContext'
 
 const USER_DOMAIN = 'frutacheck.test'
 
-/** Un nombre de usuario sin @ (p. ej. "IV GAMA") se convierte en iv-gama@frutacheck.test. */
-export function toLoginEmail(input: string): string {
+const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+
+/**
+ * Un nombre de usuario sin @ se convierte en email. Se compara sin espacios ni guiones, así que
+ * «IV GAMA», «IVGAMA» e «iv-gama» son el mismo usuario (ivgama@frutacheck.test). Por compatibilidad con
+ * usuarios antiguos, se prueba también la forma con guion (iv-gama@frutacheck.test).
+ */
+export function loginEmails(input: string): string[] {
   const v = input.trim()
-  if (v.includes('@')) return v
-  const slug = v.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  return `${slug}@${USER_DOMAIN}`
+  if (v.includes('@')) return [v]
+  const compact = fold(v).replace(/[^a-z0-9]+/g, '')
+  const hyphen = fold(v).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+  return [...new Set([compact, hyphen])].filter(Boolean).map((u) => `${u}@${USER_DOMAIN}`)
 }
 
 export function LoginPage() {
@@ -24,7 +31,13 @@ export function LoginPage() {
   async function submit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
-    setError(await signIn(toLoginEmail(email), password))
+    let result: string | null = null
+    for (const candidate of loginEmails(email)) {
+      result = await signIn(candidate, password)
+      // Solo se prueba la siguiente forma si el servidor ha contestado «incorrecto»; un fallo de red no se reintenta aquí.
+      if (!result || !result.startsWith('Usuario o contraseña')) break
+    }
+    setError(result)
     setBusy(false)
   }
 

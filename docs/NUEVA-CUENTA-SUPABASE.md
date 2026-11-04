@@ -49,12 +49,12 @@ para cada persona (se hace desde **Authentication → Users** en el panel de Sup
 **Authentication → Users → Add user → Create new user.** Marcar **Auto Confirm User**. El **primero** que se crea queda como
 administrador, así que crear **ADMINISTRADOR el primero**:
 
-| Orden | Email (el que escribe la app al poner el nombre de usuario) | Perfil |
+| Orden | Email (la app lo forma sola con el nombre de usuario, sin espacios ni guiones) | Perfil |
 |---|---|---|
 | 1 | `administrador@frutacheck.test` | Administrador (automático) |
 | 2 | `calidad@frutacheck.test` | Calidad |
-| 3 | `iv-gama@frutacheck.test` | Inspector |
-| 4 | `1-gama@frutacheck.test` | Inspector |
+| 3 | `ivgama@frutacheck.test` | Inspector |
+| 4 | `1gama@frutacheck.test` | Inspector |
 
 Después, ya dentro de la aplicación como administrador: **Maestros → Usuarios**, poner a CALIDAD el perfil *Calidad* y revisar los
 nombres. **Elegir una contraseña distinta y segura para cada persona** (no repetir la de pruebas).

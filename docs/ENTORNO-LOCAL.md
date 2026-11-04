@@ -17,9 +17,15 @@ La instancia de Campo y la de Quality Control son independientes: tienen contene
 
 ## Usar la aplicación contra el Supabase local
 
+**Atajo:** doble clic en **`Iniciar-Quality-Control-LOCAL.bat`** (en la carpeta del proyecto). Abre Docker si hace falta, arranca el Supabase
+local y la aplicación, y abre el navegador. Hay que dejar su ventana abierta mientras se usa.
+
+A mano:
+
 1. Abrir **Docker Desktop** y esperar a que arranquen los contenedores `supabase-qc-*` (se inician solos con Docker).
 2. `npm run dev` y abrir http://localhost:5173.
-3. Entrar con `ADMINISTRADOR`, `CALIDAD`, `IV GAMA` o `1 GAMA` (contraseña de desarrollo, en `supabase/seed.local.sql`).
+3. Entrar con `ADMINISTRADOR`, `CALIDAD`, `IV GAMA` o `1 GAMA` (contraseña de desarrollo, en `supabase/seed.local.sql`). El usuario se
+   escribe sin importar mayúsculas, espacios o guiones: `IV GAMA`, `IVGAMA` e `iv-gama` son lo mismo.
 
 La conexión la fija el archivo **`.env.development.local`** (no se sube a git), que `npm run dev` lee con prioridad sobre `.env.local`.
 Para volver a trabajar contra la nube basta con **renombrar o borrar** `.env.development.local`. `npm run build` y la web publicada
