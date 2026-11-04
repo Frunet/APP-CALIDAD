@@ -98,7 +98,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     canReview: !!profile && profile.active && (profile.role === 'admin' || profile.role === 'calidad'),
     signIn: async (email, password) => {
       const { error } = await supabase.auth.signInWithPassword({ email, password })
-      return error ? 'Email o contraseña incorrectos.' : null
+      if (!error) return null
+      // Un fallo del servidor o de la red no es «contraseña incorrecta»: se dice lo que pasa.
+      const status = (error as { status?: number }).status ?? 0
+      if (isNetworkError(error) || error.name === 'AuthRetryableFetchError' || status >= 500 || status === 0) {
+        return 'No se puede conectar con el servidor (sin conexión o base de datos no disponible). Inténtalo de nuevo en unos minutos o avisa al administrador.'
+      }
+      return 'Usuario o contraseña incorrectos.'
     },
     signOut: async () => {
       await supabase.auth.signOut()
