@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { compressImage } from '../lib/image'
+import { uuid } from '../lib/uuid'
 import type { PhotoDraft, PhotoKind } from '../types'
 
 interface Props {
@@ -26,7 +27,7 @@ export function PhotoPicker({ kind, defectId = null, palletIndex = null, photos,
     for (const f of Array.from(files)) {
       try {
         const blob = await compressImage(f)
-        added.push({ id: crypto.randomUUID(), kind, defectId, palletIndex, path: null, file: blob, url: URL.createObjectURL(blob) })
+        added.push({ id: uuid(), kind, defectId, palletIndex, path: null, file: blob, url: URL.createObjectURL(blob) })
       } catch {
         /* imagen ilegible: se ignora */
       }

@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import { PhotoPicker } from '../../components/PhotoPicker'
 import { Sparkline } from '../../components/charts'
+import { uuid } from '../../lib/uuid'
 import { readThermoFile, statsForColumn, type ThermoStats } from '../../lib/thermo'
 import { toNumber } from '../../lib/calculations'
 import type { PhotoDraft, ThermoDraft } from '../../types'
@@ -72,7 +73,7 @@ export function ThermoSection({ thermos, photos, limit, onChange, onAddPhotos, o
       }
       const best = parsed?.candidates[0]
       added.push({
-        id: crypto.randomUUID(),
+        id: uuid(),
         name: f.name,
         size: f.size,
         path: null,

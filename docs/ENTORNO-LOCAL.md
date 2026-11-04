@@ -58,6 +58,20 @@ de las propias migraciones. Para empezar de cero: `docker compose down -v`, borr
 
 ## Límites
 
-- Los móviles no pueden usar `localhost`: para probar en un teléfono contra el Supabase local habría que usar la IP del equipo en
-  `VITE_SUPABASE_URL` y `SUPABASE_PUBLIC_URL`/`API_EXTERNAL_URL` de `C:\supabase-qc\.env`.
+- `localhost` solo vale en este PC: para otros equipos y móviles, ver «Modo oficina».
 - Las copias de seguridad de Supabase Cloud no cubren el Supabase local: sus datos están solo en `C:\supabase-qc\volumes`.
+
+## Modo oficina (compañeros en la misma red)
+
+Los compañeros abren **http://192.168.1.131:5180** desde el móvil u otro ordenador conectado a la misma red (wifi o cable).
+Este PC debe estar **encendido, con Docker abierto y la ventana del servidor abierta**.
+
+1. Una vez: clic derecho en `Abrir-puertos-OFICINA.ps1` → *Ejecutar con PowerShell* como administrador (abre los puertos 5180 y 8200 solo a la red local).
+2. Cada vez: doble clic en **`Servidor-Quality-Control-OFICINA.bat`**.
+3. Recomendado: en el router, reservar la IP 192.168.1.131 para este PC (si cambia, hay que actualizar `C:\supabase-qc\.env`, `.env.lan.local` y reconstruir con `npx vite build --mode lan --base / --outDir dist-lan`).
+
+`C:\supabase-qc\.env` ya apunta a esa IP (copia anterior: `.env.bak-localhost`). La compilación de oficina usa `.env.lan.local` (no se sube a git).
+
+Limitaciones por usar http (no https): no se puede instalar como app (PWA) ni hay modo sin conexión con service worker, y el botón
+de compartir del informe cae a descarga. La cámara/galería de fotos y el resto funcionan. Para instalar en el móvil y compartir
+bien hace falta la versión en la nube (https).

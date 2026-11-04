@@ -1,11 +1,12 @@
 import { PHOTO_BUCKET, supabase } from '../../lib/supabase'
 import { toNumber } from '../../lib/calculations'
+import { uuid } from '../../lib/uuid'
 import { cacheGet, cacheSet } from '../../lib/cache'
 import type { ThermoStats } from '../../lib/thermo'
 import type { Agreement, PhotoKind, ReceptionDraft, ReceptionSummary, ThermoDraft } from '../../types'
 
 export function newId(): string {
-  return crypto.randomUUID()
+  return uuid()
 }
 
 export function localDatetimeNow(): string {
