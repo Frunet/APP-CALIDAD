@@ -31,6 +31,21 @@ Crea las tablas, los permisos por perfil (RLS), el almacén privado de fotos `re
 
 ## 4. Crear los usuarios
 
+### Opción A (recomendada): mantener los mismos usuarios y contraseñas
+
+El archivo **`supabase/seed.local.sql`** crea de una vez los 4 usuarios de siempre, con **los mismos nombres de usuario, la misma
+contraseña y los mismos perfiles** (ADMINISTRADOR, CALIDAD, IV GAMA y 1 GAMA). Así nadie tiene que enterarse del cambio.
+
+1. En el proyecto nuevo: **SQL Editor** → **New query** → pegar el contenido de `seed.local.sql` → **Run**. Debe mostrar una tabla con
+   los 4 usuarios y su perfil.
+2. **Ese archivo contiene la contraseña, por eso no está en GitHub.** Hay que pasarlo por un medio privado (no por el repositorio).
+3. Los usuarios tendrán que **iniciar sesión de nuevo** en cada dispositivo (la sesión de la base de datos antigua no vale).
+
+La contraseña actual es sencilla y la comparten los cuatro. Cuando el proyecto esté funcionando, conviene cambiarla por una distinta
+para cada persona (se hace desde **Authentication → Users** en el panel de Supabase).
+
+### Opción B: crearlos a mano con contraseñas nuevas
+
 **Authentication → Users → Add user → Create new user.** Marcar **Auto Confirm User**. El **primero** que se crea queda como
 administrador, así que crear **ADMINISTRADOR el primero**:
 
