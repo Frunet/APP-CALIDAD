@@ -5,3 +5,6 @@ dist
 *.local
 dev-user.local
 *.tsbuildinfo
+
+# Supabase local: datos de desarrollo (usuarios con contraseña)
+supabase/seed.local.sql

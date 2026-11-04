@@ -8,6 +8,8 @@ Control de calidad de recepción de fruta (piña, mango, aguacate). PWA instalab
 
 Requiere [Node.js LTS](https://nodejs.org).
 
+> **Supabase local:** `npm run dev` puede usar un Supabase en Docker (`C:\supabase-qc`) en lugar de la nube; ver [docs/ENTORNO-LOCAL.md](docs/ENTORNO-LOCAL.md).
+
 ```bash
 npm install
 npm run dev        # http://localhost:5173
