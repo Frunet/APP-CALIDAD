@@ -2,21 +2,23 @@ import { useState, type FormEvent } from 'react'
 import { Navigate } from 'react-router-dom'
 import { useAuth } from './AuthContext'
 
-const USER_DOMAIN = 'frutacheck.test'
+const USER_DOMAINS = ['frutacheck.test', 'frutacheck.prueba']
 
 const fold = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
 /**
  * Un nombre de usuario sin @ se convierte en email. Se compara sin espacios ni guiones, así que
- * «IV GAMA», «IVGAMA» e «iv-gama» son el mismo usuario (ivgama@frutacheck.test). Por compatibilidad con
- * usuarios antiguos, se prueba también la forma con guion (iv-gama@frutacheck.test).
+ * «IV GAMA», «IVGAMA» e «iv-gama» son el mismo usuario. Se prueban los dominios de desarrollo y
+ * producción para permitir migrar usuarios creados con cualquiera de las dos convenciones.
  */
 export function loginEmails(input: string): string[] {
   const v = input.trim()
   if (v.includes('@')) return [v]
   const compact = fold(v).replace(/[^a-z0-9]+/g, '')
   const hyphen = fold(v).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  return [...new Set([compact, hyphen])].filter(Boolean).map((u) => `${u}@${USER_DOMAIN}`)
+  return [...new Set([compact, hyphen])]
+    .filter(Boolean)
+    .flatMap((u) => USER_DOMAINS.map((domain) => `${u}@${domain}`))
 }
 
 export function LoginPage() {
