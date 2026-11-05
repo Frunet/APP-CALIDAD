@@ -20,8 +20,8 @@ jobs:
     env:
       # La URL y la clave publicable de Supabase son públicas por diseño (van en el navegador);
       # la seguridad la dan las políticas RLS de la base de datos.
-      VITE_SUPABASE_URL: https://wyivnmbzffegkvsskjpq.supabase.co
-      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_J_8Ict45r8cg5oafQ8_8aQ_DlEixnWF
+      VITE_SUPABASE_URL: https://smjjptdjkyzrvkemgfrg.supabase.co
+      VITE_SUPABASE_PUBLISHABLE_KEY: sb_publishable_HbSalHk9jHNeQHnKtCmwnA_bRqP15Eu
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
